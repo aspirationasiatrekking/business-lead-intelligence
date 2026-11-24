@@ -13,14 +13,14 @@ def test_export_businesses_to_excel(tmp_path):
         Business(
             name="Nepal Hiking Team",
             address="Thamel, Kathmandu",
-            phone="01-4989212",
+            phone_numbers=["01-4989212"],
             website="https://nepalhikingteam.com",
             category="Travel agency",
         ),
         Business(
             name="Nepal Trekking Experts",
             address="Kathmandu",
-            phone="984-1917136",
+           phone_numbers=["984-1917136"],
             website="https://nepaltrekkingexperts.com",
             category="Tour agency",
         ),

@@ -29,12 +29,12 @@ def export_businesses_to_excel(
     
     for business in businesses:
         worksheet.append([
-            business.name,
-            business.address,
-            business.phone,
-            business.website,
-            business.category,
-        ])
+        business.name,
+        business.address,
+        ", ".join(business.phone_numbers),
+        business.website,
+        business.category,
+    ])
 
    
     for cell in worksheet[1]:

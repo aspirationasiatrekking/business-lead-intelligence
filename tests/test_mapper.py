@@ -11,7 +11,7 @@ def test_map_complete_serper_place():
     place = {
         "title": "Nepal Hiking Team",
         "address": "Thamel, Kathmandu, Nepal",
-        "phoneNumber": "+977123456789",
+        "phoneNumber": "+9779846041887",
         "website": "https://www.nepalhikingteam.com/",
         "category": "Tour operator"
     }
@@ -20,7 +20,7 @@ def test_map_complete_serper_place():
 
     assert business.name == "Nepal Hiking Team"
     assert business.address == "Thamel, Kathmandu, Nepal"
-    assert business.phone == "+977123456789"
+    assert business.phone_numbers == ["+9779846041887"]
     assert business.website == "https://www.nepalhikingteam.com"
     assert business.category == "Tour operator"
 
@@ -34,7 +34,7 @@ def test_map_serper_place_with_missing_fields():
 
     assert business.name == "Nepal Hiking Team"
     assert business.address is None
-    assert business.phone is None
+    assert business.phone_numbers == []
     assert business.website is None
     assert business.category is None
 
