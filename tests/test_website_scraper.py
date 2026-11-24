@@ -141,3 +141,32 @@ def test_find_contact_pages_invalid_scheme(respx_mock):
     result = find_contact_pages("https://example.com", html)
 
     assert result == []
+
+
+
+def test_find_contact_pages_with_get_in_touch():
+    html = """
+    <html>
+        <body>
+            <a href="/reach-us">Get In Touch</a>
+        </body>
+    </html>
+    """
+
+    result = find_contact_pages("https://example.com", html)
+
+    assert result == ["https://example.com/reach-us"]
+
+
+def test_find_contact_pages_with_support():
+    html = """
+    <html>
+        <body>
+            <a href="/support">Customer Support</a>
+        </body>
+    </html>
+    """
+
+    result = find_contact_pages("https://example.com", html)
+
+    assert result == ["https://example.com/support"]

@@ -41,7 +41,7 @@ class ContactDiscoveryService:
         contact_pages = find_contact_pages(
             business.website,
             homepage_html
-        )
+        )[:5]
 
         # Fetch and extract contact pages
         for page_url in contact_pages:
