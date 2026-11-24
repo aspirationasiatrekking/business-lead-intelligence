@@ -1,0 +1,21 @@
+# Virtual environment
+.venv/
+
+# Environment variables
+.env
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Generated files
+output/*
+!output/.gitkeep
+
+# IDE
+.vscode/
