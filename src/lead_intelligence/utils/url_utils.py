@@ -1,14 +1,16 @@
 
 import ipaddress
+import socket
+
 from urllib.parse import urlparse, urlunparse
 
 from src.lead_intelligence.search.serper_provider import is_google_redirect
 
 
 def is_valid_website(url: str | None) -> bool:
-    """Check whether a URL has a valid HTTP or HTTPS website format."""
+    """Validate the basic structure of a website URL."""
 
-    if url is None or url.strip() == "":
+    if not url or not url.strip():
         return False
 
     url = url.strip()
@@ -25,7 +27,14 @@ def is_valid_website(url: str | None) -> bool:
         if not parsed_url.hostname:
             return False
 
-        # Validate the port if one is provided
+        # Reject URLs containing embedded credentials.
+        if parsed_url.username is not None:
+            return False
+
+        if parsed_url.password is not None:
+            return False
+
+        # Validate port format and range.
         _ = parsed_url.port
 
         return True
@@ -40,31 +49,52 @@ def normalize_website_url(url: str | None) -> str | None:
     if not is_valid_website(url):
         return None
 
-    parsed_url = urlparse(url.strip())
+    try:
+        parsed_url = urlparse(url.strip())
 
-    scheme = parsed_url.scheme.lower()
-    hostname = parsed_url.hostname.lower()
-    path = parsed_url.path.rstrip("/")
+        scheme = parsed_url.scheme.lower()
+        hostname = parsed_url.hostname.lower()
 
-    normalized_url = urlunparse((
-        scheme,
-        hostname,
-        path,
-        "",
-        "",
-        ""
-    ))
+        # Preserve IPv6 formatting.
+        if ":" in hostname:
+            hostname = f"[{hostname}]"
 
-    return normalized_url
+        # Preserve an explicitly provided port.
+        if parsed_url.port is not None:
+            hostname = f"{hostname}:{parsed_url.port}"
+
+        path = parsed_url.path.rstrip("/")
+
+        return urlunparse((
+            scheme,
+            hostname,
+            path,
+            "",
+            "",
+            ""
+        ))
+
+    except ValueError:
+        return None
+
+
+def is_public_ip(ip_address: str) -> bool:
+    """Check whether an IP address is globally routable."""
+
+    try:
+        ip = ipaddress.ip_address(ip_address)
+        return ip.is_global
+
+    except ValueError:
+        return False
 
 
 def is_safe_url(url: str | None) -> bool:
     """
-    Check whether a URL uses a publicly routable IP address
-    when its hostname is an IP literal.
+    Validate a URL and check all IP addresses associated
+    with its hostname.
 
-    Domain names require DNS resolution checks, which will
-    be implemented separately.
+    Rejects URLs resolving to private or non-public IPs.
     """
 
     if not is_valid_website(url):
@@ -72,15 +102,67 @@ def is_safe_url(url: str | None) -> bool:
 
     try:
         parsed_url = urlparse(url.strip())
-        hostname = parsed_url.hostname
 
+        hostname = parsed_url.hostname
+        port = parsed_url.port
+
+        if not hostname:
+            return False
+
+        # Handle direct IP addresses.
         try:
             ip = ipaddress.ip_address(hostname)
+
+            return ip.is_global
+
         except ValueError:
-            # Domain names need DNS validation.
-            return True
+            pass
 
-        return ip.is_global
+        # Resolve domain names.
+        if port is None:
+            port = 443 if parsed_url.scheme.lower() == "https" else 80
 
-    except ValueError:
+        try:
+            addresses = socket.getaddrinfo(
+                hostname,
+                port,
+                type=socket.SOCK_STREAM
+            )
+
+        except socket.gaierror:
+            return False
+
+        if not addresses:
+            return False
+
+        # Reject the hostname if ANY resolved IP is non-public.
+        for address in addresses:
+            resolved_ip = address[4][0]
+
+            if not is_public_ip(resolved_ip):
+                return False
+
+        return True
+
+    except (ValueError, OSError):
         return False
+
+
+def is_safe_redirect(
+    original_url: str,
+    redirect_url: str
+) -> bool:
+    """
+    Validate a redirect destination.
+
+    The destination must independently pass URL and
+    public-IP validation.
+    """
+
+    if not is_valid_website(original_url):
+        return False
+
+    if not is_valid_website(redirect_url):
+        return False
+
+    return is_safe_url(redirect_url)

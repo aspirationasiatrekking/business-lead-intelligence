@@ -6,6 +6,12 @@ from src.lead_intelligence.scrapers.website_scraper import fetch_website
 from src.lead_intelligence.scrapers.website_scraper import (
     find_contact_pages,
 )
+from unittest.mock import patch
+
+from src.lead_intelligence.scrapers.website_scraper import (
+    MAX_RESPONSE_SIZE,
+    fetch_website_html,
+)
 
 @respx.mock
 def test_fetch_website_success():
@@ -170,3 +176,157 @@ def test_find_contact_pages_with_support():
     result = find_contact_pages("https://example.com", html)
 
     assert result == ["https://example.com/support"]
+
+
+
+@respx.mock
+@patch(
+    "src.lead_intelligence.scrapers.website_scraper.is_safe_url",
+    return_value=True,
+)
+def test_fetch_website_rejects_oversized_content_length(mock_safe_url):
+
+    url = "https://example.com"
+
+    respx.get(url).mock(
+        return_value=httpx.Response(
+            200,
+            headers={
+                "Content-Length": str(MAX_RESPONSE_SIZE + 1)
+            },
+            content=b"small response",
+        )
+    )
+
+    result = fetch_website_html(url)
+
+    assert result is None
+
+
+@respx.mock
+@patch(
+    "src.lead_intelligence.scrapers.website_scraper.is_safe_url",
+    return_value=True,
+)
+def test_fetch_website_rejects_oversized_stream(mock_safe_url):
+
+    url = "https://example.com"
+
+    large_content = b"x" * (MAX_RESPONSE_SIZE + 1)
+
+    respx.get(url).mock(
+        return_value=httpx.Response(
+            200,
+            content=large_content,
+        )
+    )
+
+    result = fetch_website_html(url)
+
+    assert result is None
+
+
+@respx.mock
+@patch(
+    "src.lead_intelligence.scrapers.website_scraper.is_safe_url",
+    return_value=True,
+)
+def test_fetch_website_accepts_response_under_size_limit(mock_safe_url):
+
+    url = "https://example.com"
+
+    content = b"<html><body>Welcome</body></html>"
+
+    respx.get(url).mock(
+        return_value=httpx.Response(
+            200,
+            content=content,
+        )
+    )
+
+    result = fetch_website_html(url)
+
+    assert result is not None
+    assert "Welcome" in result
+
+
+# =========================================================
+# REDIRECT SECURITY TESTS
+# =========================================================
+
+@respx.mock
+@patch(
+    "src.lead_intelligence.scrapers.website_scraper.is_safe_url",
+    return_value=True,
+)
+def test_fetch_website_follows_relative_redirect(mock_safe_url):
+
+    original_url = "https://example.com/"
+    redirected_url = "https://example.com/contact"
+
+    respx.get(original_url).mock(
+        return_value=httpx.Response(
+            302,
+            headers={"Location": "/contact"},
+        )
+    )
+
+    respx.get(redirected_url).mock(
+        return_value=httpx.Response(
+            200,
+            text="<html><body>Contact page</body></html>",
+        )
+    )
+
+    result = fetch_website_html(original_url)
+
+    assert result is not None
+    assert "Contact page" in result
+    assert respx.get(original_url).called
+    assert respx.get(redirected_url).called
+
+
+@respx.mock
+@patch(
+    "src.lead_intelligence.scrapers.website_scraper.is_safe_url",
+)
+def test_fetch_website_rejects_unsafe_redirect(mock_safe_url):
+
+    original_url = "https://example.com"
+    private_url = "http://127.0.0.1"
+
+    mock_safe_url.side_effect = [True, False]
+
+    respx.get(original_url).mock(
+        return_value=httpx.Response(
+            302,
+            headers={"Location": private_url},
+        )
+    )
+
+    result = fetch_website_html(original_url)
+
+    assert result is None
+    assert not respx.get(private_url).called
+
+
+@respx.mock
+@patch(
+    "src.lead_intelligence.scrapers.website_scraper.is_safe_url",
+    return_value=True,
+)
+def test_fetch_website_rejects_too_many_redirects(mock_safe_url):
+
+    url = "https://example.com"
+
+    route = respx.get(url).mock(
+        return_value=httpx.Response(
+            302,
+            headers={"Location": "/redirect"},
+        )
+    )
+
+    result = fetch_website_html(url)
+
+    assert result is None
+    assert route.call_count == 6
