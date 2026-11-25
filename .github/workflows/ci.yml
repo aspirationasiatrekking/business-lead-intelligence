@@ -1,5 +1,5 @@
 
-name: Python CI
+name: Business Lead Intelligence CI
 
 on:
   push:
