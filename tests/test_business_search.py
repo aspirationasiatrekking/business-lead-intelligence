@@ -206,3 +206,28 @@ def test_search_uses_single_page_when_default_results_are_enough():
         page=1,
         num=10,
     )
+
+
+
+def test_search_deduplicates_businesses():
+    service = create_mock_service()
+
+    service.provider.search_places.return_value = {
+        "places": [
+            {
+                "title": "Nepal Hiking Team",
+                "website": "https://www.nepalhikingteam.com/",
+                "phoneNumber": "+9779846041887",
+            },
+            {
+                "title": "Nepal Hiking Team Pvt Ltd",
+                "website": "https://nepalhikingteam.com/about",
+                "phoneNumber": "+9779846041887",
+            },
+        ]
+    }
+
+    businesses = service.search("Trekking companies")
+
+    assert len(businesses) == 1
+    assert businesses[0].name == "Nepal Hiking Team"

@@ -5,7 +5,9 @@ from src.lead_intelligence.search.serper_provider import (
 )
 from src.lead_intelligence.models.mapper import map_serper_places
 from src.lead_intelligence.models.business import Business
-
+from src.lead_intelligence.services.business_deduplication import (
+    BusinessDeduplicationService,
+)
 
 class BusinessSearchService:
 
@@ -14,6 +16,7 @@ class BusinessSearchService:
 
     def __init__(self):
         self.provider = SerperSearchProvider()
+        self.deduplication_service = BusinessDeduplicationService()
 
     def __enter__(self):
         return self
@@ -64,5 +67,7 @@ class BusinessSearchService:
             places,
             region=region,
         )
+
+        businesses = self.deduplication_service.deduplicate(businesses)
 
         return businesses[:max_results]
