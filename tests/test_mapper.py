@@ -190,3 +190,38 @@ def test_map_serper_places_with_report_returns_empty_result():
     assert result.businesses == []
     assert result.failures == []
     assert result.total_processed == 0
+
+
+def test_map_serper_places_with_report_continues_after_mapping_exception(
+    monkeypatch,
+):
+    from src.lead_intelligence.models import mapper
+
+    original_mapper = mapper.map_serper_place
+
+    def mock_map_serper_place(place, region=None):
+        if place.get("title") == "Broken Business":
+            raise ValueError("Invalid business data")
+
+        return original_mapper(place, region=region)
+
+    monkeypatch.setattr(mapper, "map_serper_place", mock_map_serper_place)
+
+    places = [
+        {"title": "First Business"},
+        {"title": "Broken Business"},
+        {"title": "Third Business"},
+    ]
+
+    result = mapper.map_serper_places_with_report(places)
+
+    assert len(result.businesses) == 2
+    assert len(result.failures) == 1
+    assert result.total_processed == 3
+
+    assert result.businesses[0].name == "First Business"
+    assert result.businesses[1].name == "Third Business"
+
+    assert result.failures[0].item_index == 1
+    assert result.failures[0].stage == "mapping"
+    assert "Invalid business data" in result.failures[0].message

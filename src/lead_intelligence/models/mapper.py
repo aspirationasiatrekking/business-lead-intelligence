@@ -79,21 +79,34 @@ def map_serper_places_with_report(
             )
             continue
 
-        business = map_serper_place(place, region=region)
+        try:
+            business = map_serper_place(place, region=region)
 
-        if business is None:
+            if business is None:
+                result.failures.append(
+                    ProcessingFailure(
+                        item_index=index,
+                        stage="mapping",
+                        message="Business has no usable name or valid website.",
+                        item_name=place.get("title")
+                        if isinstance(place.get("title"), str)
+                        else None,
+                    )
+                )
+                continue
+
+            result.businesses.append(business)
+
+        except (ValueError, TypeError, KeyError, AttributeError) as exc:
             result.failures.append(
                 ProcessingFailure(
                     item_index=index,
                     stage="mapping",
-                    message="Business has no usable name or valid website.",
+                    message=f"{type(exc).__name__}: {exc}",
                     item_name=place.get("title")
                     if isinstance(place.get("title"), str)
                     else None,
                 )
             )
-            continue
-
-        result.businesses.append(business)
 
     return result
