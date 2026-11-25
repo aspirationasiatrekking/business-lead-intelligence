@@ -1,3 +1,4 @@
+
 from src.lead_intelligence.models.business import Business
 from src.lead_intelligence.models.mapper import map_serper_places
 from src.lead_intelligence.search.serper_provider import (
@@ -13,8 +14,8 @@ class BusinessSearchService:
     DEFAULT_MAX_RESULTS = 10
     MAX_ALLOWED_RESULTS = 100
 
-    def __init__(self):
-        self.provider = SerperSearchProvider()
+    def __init__(self, provider=None):
+        self.provider = provider if provider is not None else SerperSearchProvider()
         self.deduplication_service = BusinessDeduplicationService()
 
     def __enter__(self):
@@ -32,7 +33,6 @@ class BusinessSearchService:
         country: str | None = None,
         max_results: int = DEFAULT_MAX_RESULTS,
     ) -> list[Business]:
-
         if not isinstance(max_results, int) or isinstance(max_results, bool):
             raise TypeError("Maximum results must be an integer")
 
