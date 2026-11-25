@@ -67,3 +67,37 @@ def test_resolve_links_raises_http_error(monkeypatch):
 
     with pytest.raises(Exception, match="Resolve request failed"):
         provider.resolve_links({"places": []})
+
+
+@pytest.mark.parametrize(
+    "response_data",
+    [
+        [],
+        None,
+        "invalid response",
+        {"unexpected": []},
+        {"places": "invalid"},
+        {"places": None},
+    ],
+)
+def test_resolve_links_rejects_invalid_response_structure(
+    monkeypatch,
+    response_data,
+):
+    monkeypatch.setenv("SERPER_API_KEY", "test-api-key")
+
+    provider = SerperSearchProvider()
+
+    mock_response = Mock()
+    mock_response.json.return_value = response_data
+
+    monkeypatch.setattr(
+        provider.session,
+        "post",
+        Mock(return_value=mock_response),
+    )
+
+    with pytest.raises(ValueError, match="Serper Places response"):
+        provider.resolve_links({"places": []})
+
+    provider.close()

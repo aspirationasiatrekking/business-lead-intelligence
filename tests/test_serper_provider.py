@@ -243,3 +243,37 @@ def test_rejects_non_integer_num(monkeypatch, num):
         provider.search_places("Trekking companies", num=num)
 
     provider.close()
+
+
+@pytest.mark.parametrize(
+    "response_data",
+    [
+        [],
+        None,
+        "invalid response",
+        {"unexpected": []},
+        {"places": "invalid"},
+        {"places": None},
+    ],
+)
+def test_search_places_rejects_invalid_response_structure(
+    monkeypatch,
+    response_data,
+):
+    monkeypatch.setenv("SERPER_API_KEY", "test-api-key")
+
+    provider = SerperSearchProvider()
+
+    mock_response = Mock()
+    mock_response.json.return_value = response_data
+
+    monkeypatch.setattr(
+        provider.session,
+        "post",
+        Mock(return_value=mock_response),
+    )
+
+    with pytest.raises(ValueError, match="Serper Places response"):
+        provider.search_places("Trekking companies")
+
+    provider.close()

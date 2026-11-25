@@ -20,6 +20,10 @@ RETRYABLE_STATUS_CODES = {429, 500, 502, 503, 504}
 MAX_RETRY_AFTER_SECONDS = 30.0
 
 
+class SerperResponseError(ValueError):
+    """Raised when Serper returns an unexpected response structure."""
+
+
 def is_retryable_error(error: Exception) -> bool:
     """Determine whether a failed HTTP request should be retried."""
 
@@ -114,6 +118,25 @@ class SerperSearchProvider:
             max_delay=30,
         )
 
+    @staticmethod
+    def _validate_places_response(data: dict) -> dict:
+        """Validate the structure of a Serper Places API response."""
+
+        if not isinstance(data, dict):
+            raise SerperResponseError("Serper Places response must be a dictionary.")
+
+        if "places" not in data:
+            raise SerperResponseError(
+                "Serper Places response is missing the 'places' field."
+            )
+
+        if not isinstance(data["places"], list):
+            raise SerperResponseError(
+                "Serper Places response field 'places' must be a list."
+            )
+
+        return data
+
     @retry(
         retry=retry_if_exception(is_retryable_error),
         stop=stop_after_attempt(3),
@@ -169,10 +192,14 @@ class SerperSearchProvider:
         if country:
             payload["gl"] = country
 
-        return self._post("places", payload)
+        response = self._post("places", payload)
+
+        return self._validate_places_response(response)
 
     def resolve_links(self, results: dict) -> dict:
-        return self._post("resolve", results)
+        response = self._post("resolve", results)
+
+        return self._validate_places_response(response)
 
     def close(self):
         """Close the HTTP session and release its resources."""
