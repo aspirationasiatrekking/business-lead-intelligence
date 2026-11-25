@@ -25,8 +25,7 @@ def test_search_without_redirects():
 
 
 def test_search_with_redirects():
-    service = BusinessSearchService()
-    service.provider = MagicMock()
+    service = BusinessSearchService(provider=MagicMock())
 
     raw_results = {
         "places": [
@@ -53,8 +52,7 @@ def test_search_with_redirects():
 
 
 def test_search_with_no_places():
-    service = BusinessSearchService()
-    service.provider = MagicMock()
+    service = BusinessSearchService(provider=MagicMock())
 
     service.provider.search_places.return_value = {"places": []}
 
