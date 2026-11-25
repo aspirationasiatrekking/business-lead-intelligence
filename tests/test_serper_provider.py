@@ -1,6 +1,7 @@
 from unittest.mock import Mock
 
 import pytest
+import requests
 from requests_ratelimiter import LimiterSession
 
 from src.lead_intelligence.search.serper_provider import (
@@ -274,6 +275,33 @@ def test_search_places_rejects_invalid_response_structure(
     )
 
     with pytest.raises(ValueError, match="Serper Places response"):
+        provider.search_places("Trekking companies")
+
+    provider.close()
+
+
+def test_search_places_rejects_invalid_json(monkeypatch):
+    monkeypatch.setenv("SERPER_API_KEY", "test-api-key")
+
+    provider = SerperSearchProvider()
+
+    mock_response = Mock()
+    mock_response.json.side_effect = requests.exceptions.JSONDecodeError(
+        "Invalid JSON",
+        "invalid",
+        0,
+    )
+
+    monkeypatch.setattr(
+        provider.session,
+        "post",
+        Mock(return_value=mock_response),
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="Serper API returned invalid JSON",
+    ):
         provider.search_places("Trekking companies")
 
     provider.close()

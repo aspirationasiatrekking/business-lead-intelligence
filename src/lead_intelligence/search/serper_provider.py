@@ -157,7 +157,11 @@ class SerperSearchProvider:
         )
 
         response.raise_for_status()
-        return response.json()
+
+        try:
+            return response.json()
+        except requests.exceptions.JSONDecodeError as exc:
+            raise SerperResponseError("Serper API returned invalid JSON.") from exc
 
     def search_places(
         self,
