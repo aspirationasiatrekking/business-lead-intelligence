@@ -10,9 +10,12 @@ def main():
 
     input_query = input("Enter your search query: ")
 
-    # Search businesses
-    search_service = BusinessSearchService()
-    businesses = search_service.search(input_query, country="np")
+    # Search businesses and automatically close the HTTP session
+    with BusinessSearchService() as search_service:
+        businesses = search_service.search(
+            input_query,
+            country="np",
+        )
 
     print(f"\nFound {len(businesses)} businesses.")
 
@@ -37,7 +40,7 @@ def main():
 
     export_businesses_to_excel(
         businesses,
-        str(output_path)
+        str(output_path),
     )
 
     print(f"\nExported {len(businesses)} businesses.")

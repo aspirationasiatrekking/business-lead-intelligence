@@ -1,5 +1,5 @@
 
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, Mock
 
 from src.lead_intelligence.services.business_search import BusinessSearchService
 from src.lead_intelligence.models.business import Business
@@ -69,3 +69,140 @@ def test_search_with_no_places():
 
     assert businesses == []
     service.provider.resolve_links.assert_not_called()
+
+
+
+import pytest
+
+
+def create_mock_service():
+    service = BusinessSearchService()
+    service.provider = MagicMock()
+    return service
+
+
+def generate_places(count):
+    return [
+        {"title": f"Business {i}"}
+        for i in range(count)
+    ]
+
+
+def test_search_default_max_results():
+    service = create_mock_service()
+
+    service.provider.search_places.return_value = {
+        "places": generate_places(20)
+    }
+
+    businesses = service.search("Adventure agencies")
+
+    assert len(businesses) == 10
+
+    service.provider.search_places.assert_called_once_with(
+        query="Adventure agencies",
+        country=None,
+        num=10,
+        page=1
+    )
+
+
+def test_search_custom_max_results():
+    service = create_mock_service()
+
+    service.provider.search_places.return_value = {
+        "places": generate_places(20)
+    }
+
+    businesses = service.search(
+        "Adventure agencies",
+        max_results=5,
+    )
+
+    assert len(businesses) == 5
+
+    service.provider.search_places.assert_called_once_with(
+        query="Adventure agencies",
+        country=None,
+        num=5,
+        page=1
+    )
+
+
+def test_search_maximum_allowed_results():
+    service = create_mock_service()
+
+    service.provider.search_places.return_value = {
+        "places": generate_places(110)
+    }
+
+    businesses = service.search(
+        "Adventure agencies",
+        max_results=100,
+    )
+
+    assert len(businesses) == 100
+
+    service.provider.search_places.assert_called_once_with(
+        query="Adventure agencies",
+        country=None,
+        num=100,
+        page=1
+    )
+
+
+@pytest.mark.parametrize(
+    "max_results",
+    [0, -1, 101, 1.5, "10", True],
+)
+def test_search_rejects_invalid_max_results(max_results):
+    service = create_mock_service()
+
+    with pytest.raises(ValueError):
+        service.search(
+            "Adventure agencies",
+            max_results=max_results,
+        )
+
+    service.provider.search_places.assert_not_called()
+
+
+def test_context_manager_closes_provider(monkeypatch):
+    monkeypatch.setenv("SERPER_API_KEY", "test-api-key")
+
+    with BusinessSearchService() as service:
+        provider = service.provider
+        provider.close = Mock()
+
+    provider.close.assert_called_once()
+
+
+def generate_paginated_places(page, count=10):
+    return {
+        "places": [
+            {
+                "title": f"Business {page}_{i}",
+                "website": f"https://business{page}_{i}.com",
+            }
+            for i in range(count)
+        ]
+    }
+
+def test_search_uses_single_page_when_default_results_are_enough():
+    service = create_mock_service()
+
+    service.provider.search_places.return_value = generate_paginated_places(
+        page=1,
+        count=10,
+    )
+
+    businesses = service.search("Adventure agencies")
+
+    assert len(businesses) == 10
+
+    service.provider.search_places.assert_called_once_with(
+        query="Adventure agencies",
+        country=None,
+        page=1,
+        num=10,
+    )

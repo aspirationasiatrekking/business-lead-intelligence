@@ -35,10 +35,7 @@ def test_resolve_links_sends_correct_request(monkeypatch):
 
     mock_post = Mock(return_value=mock_response)
 
-    monkeypatch.setattr(
-        "src.lead_intelligence.search.serper_provider.requests.post",
-        mock_post,
-    )
+    monkeypatch.setattr(provider.session, "post", mock_post)
 
     result = provider.resolve_links(original_results)
 
@@ -67,10 +64,8 @@ def test_resolve_links_raises_http_error(monkeypatch):
         Exception("Resolve request failed")
     )
 
-    monkeypatch.setattr(
-        "src.lead_intelligence.search.serper_provider.requests.post",
-        Mock(return_value=mock_response),
-    )
+    mock_post = Mock(return_value=mock_response)
+    monkeypatch.setattr(provider.session, "post", mock_post)
 
     with pytest.raises(Exception, match="Resolve request failed"):
         provider.resolve_links({"places": []})

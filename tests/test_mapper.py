@@ -105,3 +105,47 @@ def test_map_serper_place_rejects_invalid_website():
     business = map_serper_place(place)
 
     assert business.website is None
+
+
+def test_map_serper_place_uses_website_domain_when_title_missing():
+    place = {
+        "website": "https://www.nepalhikingteam.com/"
+    }
+
+    business = map_serper_place(place)
+
+    assert business.name == "nepalhikingteam.com"
+
+
+def test_map_serper_place_without_title_or_valid_website():
+    place = {
+        "website": "invalid-url"
+    }
+
+    businesses = map_serper_places([place])
+
+    assert businesses == []
+
+
+def test_map_serper_place_normalizes_phone_using_selected_region():
+    place = {
+        "title": "Example Business",
+        "phoneNumber": "2025550123",
+    }
+
+    business = map_serper_place(place, region="US")
+
+    assert business.phone_numbers == ["+12025550123"]
+
+
+def test_map_serper_places_passes_selected_region():
+    places = [
+        {
+            "title": "Nepal Business",
+            "phoneNumber": "9846041887",
+        }
+    ]
+
+    businesses = map_serper_places(places, region="NP")
+
+    assert businesses[0].phone_numbers == ["+9779846041887"]
