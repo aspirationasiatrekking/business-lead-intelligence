@@ -1,4 +1,3 @@
-
 from src.lead_intelligence.models.business import Business
 from src.lead_intelligence.models.mapper import map_serper_places
 from src.lead_intelligence.search.serper_provider import (

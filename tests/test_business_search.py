@@ -7,7 +7,7 @@ from src.lead_intelligence.services.business_search import BusinessSearchService
 
 
 def test_search_without_redirects():
-    service = BusinessSearchService(provider=MagicMock()) 
+    service = BusinessSearchService(provider=MagicMock())
 
     service.provider.search_places.return_value = {
         "places": [
