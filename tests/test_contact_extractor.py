@@ -131,3 +131,46 @@ def test_normalize_invalid_number():
 def test_normalize_invalid_input():
     result = normalize_phone_number("not a phone number", region="NP")
     assert result is None
+
+
+
+def test_reject_invalid_email_addresses():
+    text = """
+    info@example.com
+    invalid-email
+    user@
+    @example.com
+    user@.com
+    """
+
+    result = extract_emails(text)
+
+    assert result == ["info@example.com"]
+
+
+def test_preserve_email_discovery_order():
+    text = """
+    info@example.com
+    sales@example.com
+    support@example.com
+    """
+
+    result = extract_emails(text)
+
+    assert result == [
+        "info@example.com",
+        "sales@example.com",
+        "support@example.com",
+    ]
+
+
+def test_remove_duplicate_emails_case_insensitively():
+    text = """
+    INFO@example.com
+    info@example.com
+    Info@Example.com
+    """
+
+    result = extract_emails(text)
+
+    assert result == ["info@example.com"]

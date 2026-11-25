@@ -4,7 +4,9 @@ from pathlib import Path
 from src.lead_intelligence.services.business_search import BusinessSearchService
 from src.lead_intelligence.services.contact_discovery import ContactDiscoveryService
 from src.lead_intelligence.exporters.excel_exporter import export_businesses_to_excel
-
+from src.lead_intelligence.exporters.csv_exporter import (
+    export_businesses_to_csv,
+)
 
 def main():
 
@@ -36,15 +38,15 @@ def main():
     output_dir = Path("output")
     output_dir.mkdir(exist_ok=True)
 
-    output_path = output_dir / "business_leads.xlsx"
+    excel_path = output_dir / "business_leads.xlsx"
+    csv_path = output_dir / "business_leads.csv"
 
-    export_businesses_to_excel(
-        businesses,
-        str(output_path),
-    )
+    export_businesses_to_excel(businesses, str(excel_path))
+    export_businesses_to_csv(businesses, str(csv_path))
 
     print(f"\nExported {len(businesses)} businesses.")
-    print(f"File: {output_path}")
+    print(f"Excel file: {excel_path}")
+    print(f"CSV file: {csv_path}")
 
 
 if __name__ == "__main__":
