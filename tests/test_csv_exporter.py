@@ -1,5 +1,7 @@
 import csv
 
+import pytest
+
 from src.lead_intelligence.exporters.csv_exporter import (
     export_businesses_to_csv,
 )
@@ -40,7 +42,7 @@ def test_export_businesses_to_csv(tmp_path):
 
     assert rows[1][0] == "Nepal Hiking Team"
     assert rows[1][2] == "sales@example.com; info@example.com"
-    assert rows[1][3] == "+97714989212"
+    assert rows[1][3] == "'+97714989212"
 
     assert rows[1][6] == "100"
     assert rows[1][7] == "High"
@@ -76,3 +78,50 @@ def test_export_business_without_emails(tmp_path):
     assert rows[1][2] == ""
     assert rows[1][6] == "0"
     assert rows[1][7] == "Low"
+
+
+@pytest.mark.parametrize(
+    "malicious_value",
+    [
+        "=1+1",
+        "+1+1",
+        "-1+1",
+        "@SUM(A1:A2)",
+        "  =1+1",
+        "\t=1+1",
+    ],
+)
+def test_export_formula_like_business_names_safely(
+    tmp_path,
+    malicious_value,
+):
+    business = Business(name=malicious_value)
+
+    output_file = tmp_path / "formula_injection.csv"
+
+    export_businesses_to_csv([business], str(output_file))
+
+    with open(output_file, encoding="utf-8-sig", newline="") as file:
+        rows = list(csv.reader(file))
+
+    assert rows[1][0] == f"'{malicious_value}"
+
+
+def test_export_formula_like_values_in_multiple_fields(tmp_path):
+    business = Business(
+        name="Example Company",
+        address="=HYPERLINK('https://example.com')",
+        emails=["=malicious@example.com"],
+        category="@SUM(A1:A2)",
+    )
+
+    output_file = tmp_path / "formula_fields.csv"
+
+    export_businesses_to_csv([business], str(output_file))
+
+    with open(output_file, encoding="utf-8-sig", newline="") as file:
+        rows = list(csv.reader(file))
+
+    assert rows[1][1] == "'=HYPERLINK('https://example.com')"
+    assert rows[1][2] == "'=malicious@example.com"
+    assert rows[1][5] == "'@SUM(A1:A2)"

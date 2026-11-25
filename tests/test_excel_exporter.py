@@ -1,3 +1,4 @@
+import pytest
 from openpyxl import load_workbook
 
 from src.lead_intelligence.exporters.excel_exporter import (
@@ -114,5 +115,37 @@ def test_export_business_without_emails(tmp_path):
     assert worksheet["C2"].value is None
     assert worksheet["G2"].value == 0
     assert worksheet["H2"].value == "Low"
+
+    workbook.close()
+
+
+@pytest.mark.parametrize(
+    "malicious_value",
+    [
+        "=1+1",
+        "+1+1",
+        "-1+1",
+        "@SUM(A1:A2)",
+        "  =1+1",
+        "\t=1+1",
+    ],
+)
+def test_export_formula_like_business_names_as_text(
+    tmp_path,
+    malicious_value,
+):
+    business = Business(name=malicious_value)
+
+    output_file = tmp_path / "formula_injection.xlsx"
+
+    export_businesses_to_excel([business], str(output_file))
+
+    workbook = load_workbook(output_file)
+    worksheet = workbook.active
+
+    cell = worksheet["A2"]
+
+    assert cell.value == malicious_value
+    assert cell.data_type == "s"
 
     workbook.close()
