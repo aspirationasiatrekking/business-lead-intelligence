@@ -1,8 +1,9 @@
-
 from unittest.mock import MagicMock, Mock
 
-from src.lead_intelligence.services.business_search import BusinessSearchService
+import pytest
+
 from src.lead_intelligence.models.business import Business
+from src.lead_intelligence.services.business_search import BusinessSearchService
 
 
 def test_search_without_redirects():
@@ -32,18 +33,13 @@ def test_search_with_redirects():
         "places": [
             {
                 "title": "Business One",
-                "website": "https://www.google.com/goto?url=example"
+                "website": "https://www.google.com/goto?url=example",
             }
         ]
     }
 
     resolved_results = {
-        "places": [
-            {
-                "title": "Business One",
-                "website": "https://example.com"
-            }
-        ]
+        "places": [{"title": "Business One", "website": "https://example.com"}]
     }
 
     service.provider.search_places.return_value = raw_results
@@ -61,18 +57,12 @@ def test_search_with_no_places():
     service = BusinessSearchService()
     service.provider = MagicMock()
 
-    service.provider.search_places.return_value = {
-        "places": []
-    }
+    service.provider.search_places.return_value = {"places": []}
 
     businesses = service.search("Unknown businesses")
 
     assert businesses == []
     service.provider.resolve_links.assert_not_called()
-
-
-
-import pytest
 
 
 def create_mock_service():
@@ -82,37 +72,27 @@ def create_mock_service():
 
 
 def generate_places(count):
-    return [
-        {"title": f"Business {i}"}
-        for i in range(count)
-    ]
+    return [{"title": f"Business {i}"} for i in range(count)]
 
 
 def test_search_default_max_results():
     service = create_mock_service()
 
-    service.provider.search_places.return_value = {
-        "places": generate_places(20)
-    }
+    service.provider.search_places.return_value = {"places": generate_places(20)}
 
     businesses = service.search("Adventure agencies")
 
     assert len(businesses) == 10
 
     service.provider.search_places.assert_called_once_with(
-        query="Adventure agencies",
-        country=None,
-        num=10,
-        page=1
+        query="Adventure agencies", country=None, num=10, page=1
     )
 
 
 def test_search_custom_max_results():
     service = create_mock_service()
 
-    service.provider.search_places.return_value = {
-        "places": generate_places(20)
-    }
+    service.provider.search_places.return_value = {"places": generate_places(20)}
 
     businesses = service.search(
         "Adventure agencies",
@@ -122,19 +102,14 @@ def test_search_custom_max_results():
     assert len(businesses) == 5
 
     service.provider.search_places.assert_called_once_with(
-        query="Adventure agencies",
-        country=None,
-        num=5,
-        page=1
+        query="Adventure agencies", country=None, num=5, page=1
     )
 
 
 def test_search_maximum_allowed_results():
     service = create_mock_service()
 
-    service.provider.search_places.return_value = {
-        "places": generate_places(110)
-    }
+    service.provider.search_places.return_value = {"places": generate_places(110)}
 
     businesses = service.search(
         "Adventure agencies",
@@ -144,10 +119,7 @@ def test_search_maximum_allowed_results():
     assert len(businesses) == 100
 
     service.provider.search_places.assert_called_once_with(
-        query="Adventure agencies",
-        country=None,
-        num=100,
-        page=1
+        query="Adventure agencies", country=None, num=100, page=1
     )
 
 
@@ -158,7 +130,7 @@ def test_search_maximum_allowed_results():
 def test_search_rejects_invalid_max_results(max_results):
     service = create_mock_service()
 
-    with pytest.raises(ValueError):
+    with pytest.raises((ValueError, TypeError)):
         service.search(
             "Adventure agencies",
             max_results=max_results,
@@ -188,6 +160,7 @@ def generate_paginated_places(page, count=10):
         ]
     }
 
+
 def test_search_uses_single_page_when_default_results_are_enough():
     service = create_mock_service()
 
@@ -206,7 +179,6 @@ def test_search_uses_single_page_when_default_results_are_enough():
         page=1,
         num=10,
     )
-
 
 
 def test_search_deduplicates_businesses():

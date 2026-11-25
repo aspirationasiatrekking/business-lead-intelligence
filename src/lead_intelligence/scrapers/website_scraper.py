@@ -1,18 +1,15 @@
-
-import httpx
-
-from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse, urlunparse
 
+import httpx
+from bs4 import BeautifulSoup
 from tenacity import (
     retry,
+    retry_if_exception,
     stop_after_attempt,
     wait_exponential,
-    retry_if_exception,
 )
 
 from src.lead_intelligence.utils.url_utils import is_safe_url
-
 
 # =========================================================
 # CONTACT PAGE CONFIGURATION
@@ -80,6 +77,7 @@ REDIRECT_STATUS_CODES = {
 # CUSTOM EXCEPTIONS
 # =========================================================
 
+
 class ResponseTooLargeError(Exception):
     """Raised when a website response exceeds the allowed size."""
 
@@ -87,6 +85,7 @@ class ResponseTooLargeError(Exception):
 # =========================================================
 # RETRY CONFIGURATION
 # =========================================================
+
 
 def should_retry(error: BaseException) -> bool:
     """Determine whether an HTTP failure should be retried."""
@@ -113,6 +112,7 @@ def should_retry(error: BaseException) -> bool:
 # WEBSITE HTTP REQUEST
 # =========================================================
 
+
 @retry(
     stop=stop_after_attempt(3),
     wait=wait_exponential(multiplier=1, min=2, max=8),
@@ -128,7 +128,6 @@ def _request_website_html(url: str) -> str:
     current_url = url
 
     for redirect_count in range(MAX_REDIRECTS + 1):
-
         redirect_url = None
 
         with httpx.stream(
@@ -138,36 +137,27 @@ def _request_website_html(url: str) -> str:
             timeout=TIMEOUT,
             follow_redirects=False,
         ) as response:
-
             # -------------------------------------------------
             # HANDLE REDIRECTS
             # -------------------------------------------------
 
             if response.status_code in REDIRECT_STATUS_CODES:
-
                 location = response.headers.get("location")
 
                 if not location:
-                    raise ValueError(
-                        f"Redirect without destination: {current_url}"
-                    )
+                    raise ValueError(f"Redirect without destination: {current_url}")
 
                 if redirect_count >= MAX_REDIRECTS:
-                    raise ValueError(
-                        "Maximum redirect limit exceeded"
-                    )
+                    raise ValueError("Maximum redirect limit exceeded")
 
                 next_url = urljoin(current_url, location)
 
                 if not is_safe_url(next_url):
-                    raise ValueError(
-                        f"Unsafe redirect destination: {next_url}"
-                    )
+                    raise ValueError(f"Unsafe redirect destination: {next_url}")
 
                 redirect_url = next_url
 
             else:
-
                 # -------------------------------------------------
                 # CHECK HTTP STATUS
                 # -------------------------------------------------
@@ -184,19 +174,13 @@ def _request_website_html(url: str) -> str:
                     try:
                         declared_size = int(content_length)
                     except ValueError as error:
-                        raise ValueError(
-                            "Invalid Content-Length header"
-                        ) from error
+                        raise ValueError("Invalid Content-Length header") from error
 
                     if declared_size < 0:
-                        raise ValueError(
-                            "Invalid negative Content-Length"
-                        )
+                        raise ValueError("Invalid negative Content-Length")
 
                     if declared_size > MAX_RESPONSE_SIZE:
-                        raise ResponseTooLargeError(
-                            "Website response exceeds 5 MB"
-                        )
+                        raise ResponseTooLargeError("Website response exceeds 5 MB")
 
                 # -------------------------------------------------
                 # STREAM RESPONSE IN SMALL CHUNKS
@@ -204,16 +188,11 @@ def _request_website_html(url: str) -> str:
 
                 content = bytearray()
 
-                for chunk in response.iter_bytes(
-                    chunk_size=64 * 1024
-                ):
-
+                for chunk in response.iter_bytes(chunk_size=64 * 1024):
                     content.extend(chunk)
 
                     if len(content) > MAX_RESPONSE_SIZE:
-                        raise ResponseTooLargeError(
-                            "Website response exceeded 5 MB"
-                        )
+                        raise ResponseTooLargeError("Website response exceeded 5 MB")
 
                 # Decode downloaded content
                 encoding = response.encoding or "utf-8"
@@ -234,6 +213,7 @@ def _request_website_html(url: str) -> str:
 # PUBLIC WEBSITE FETCHING FUNCTIONS
 # =========================================================
 
+
 def fetch_website_html(url: str) -> str | None:
     """Fetch website HTML and handle final request failures."""
 
@@ -246,7 +226,6 @@ def fetch_website_html(url: str) -> str | None:
         ValueError,
         ResponseTooLargeError,
     ) as error:
-
         print(f"Error fetching website {url}: {error}")
 
         return None
@@ -278,24 +257,28 @@ def fetch_website(url: str) -> str | None:
 # URL NORMALIZATION
 # =========================================================
 
+
 def normalize_page_url(url: str) -> str:
     """Normalize URLs for duplicate detection."""
 
     parsed = urlparse(url)
 
-    return urlunparse((
-        parsed.scheme.lower(),
-        parsed.netloc.lower(),
-        parsed.path.rstrip("/") or "/",
-        "",
-        "",
-        "",
-    ))
+    return urlunparse(
+        (
+            parsed.scheme.lower(),
+            parsed.netloc.lower(),
+            parsed.path.rstrip("/") or "/",
+            "",
+            "",
+            "",
+        )
+    )
 
 
 # =========================================================
 # CONTACT PAGE DISCOVERY
 # =========================================================
+
 
 def find_contact_pages(url: str, html: str) -> list[str]:
     """Discover and prioritize contact-related pages."""
@@ -307,7 +290,6 @@ def find_contact_pages(url: str, html: str) -> list[str]:
     contact_pages = {}
 
     for link in soup.find_all("a", href=True):
-
         href = link["href"]
 
         full_url = urljoin(url, href)
@@ -340,14 +322,12 @@ def find_contact_pages(url: str, html: str) -> list[str]:
         score = 0
 
         for keyword in CONTACT_KEYWORDS:
-
             normalized_keyword = keyword.replace("-", " ")
 
             if normalized_keyword in normalized_text:
                 score = max(score, 1)
 
         for keyword in HIGH_PRIORITY_KEYWORDS:
-
             normalized_keyword = keyword.replace("-", " ")
 
             if normalized_keyword in normalized_text:
@@ -355,18 +335,15 @@ def find_contact_pages(url: str, html: str) -> list[str]:
                 break
 
         if score > 0:
-
             normalized_url = normalize_page_url(full_url)
 
             if normalized_url not in contact_pages:
-
                 contact_pages[normalized_url] = {
                     "url": full_url,
                     "score": score,
                 }
 
             else:
-
                 contact_pages[normalized_url]["score"] = max(
                     contact_pages[normalized_url]["score"],
                     score,
@@ -379,7 +356,4 @@ def find_contact_pages(url: str, html: str) -> list[str]:
         reverse=True,
     )
 
-    return [
-        page["url"]
-        for page in sorted_pages
-    ]
+    return [page["url"] for page in sorted_pages]

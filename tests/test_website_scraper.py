@@ -1,17 +1,15 @@
+from unittest.mock import patch
 
 import httpx
 import respx
 
-from src.lead_intelligence.scrapers.website_scraper import fetch_website
-from src.lead_intelligence.scrapers.website_scraper import (
-    find_contact_pages,
-)
-from unittest.mock import patch
-
 from src.lead_intelligence.scrapers.website_scraper import (
     MAX_RESPONSE_SIZE,
+    fetch_website,
     fetch_website_html,
+    find_contact_pages,
 )
+
 
 @respx.mock
 def test_fetch_website_success():
@@ -28,9 +26,7 @@ def test_fetch_website_success():
     </html>
     """
 
-    respx.get(url).mock(
-        return_value=httpx.Response(200, text=html)
-    )
+    respx.get(url).mock(return_value=httpx.Response(200, text=html))
 
     result = fetch_website(url)
 
@@ -44,14 +40,11 @@ def test_fetch_website_http_error():
 
     url = "https://example.com"
 
-    respx.get(url).mock(
-        return_value=httpx.Response(404)
-    )
+    respx.get(url).mock(return_value=httpx.Response(404))
 
     result = fetch_website(url)
 
     assert result is None
-
 
 
 @respx.mock
@@ -59,15 +52,11 @@ def test_fetch_website_connection_error():
 
     url = "https://example.com"
 
-    respx.get(url).mock(
-        side_effect=httpx.ConnectError("Connection failed")
-    )
+    respx.get(url).mock(side_effect=httpx.ConnectError("Connection failed"))
 
     result = fetch_website(url)
 
     assert result is None
-
-
 
 
 def test_find_contact_pages(respx_mock):
@@ -100,9 +89,7 @@ def test_find_contact_pages_from_link_text(respx_mock):
 
     result = find_contact_pages("https://example.com", html)
 
-    assert result == [
-        "https://example.com/company-information"
-    ]
+    assert result == ["https://example.com/company-information"]
 
 
 def test_find_contact_pages_removes_duplicates(respx_mock):
@@ -149,7 +136,6 @@ def test_find_contact_pages_invalid_scheme(respx_mock):
     assert result == []
 
 
-
 def test_find_contact_pages_with_get_in_touch():
     html = """
     <html>
@@ -178,7 +164,6 @@ def test_find_contact_pages_with_support():
     assert result == ["https://example.com/support"]
 
 
-
 @respx.mock
 @patch(
     "src.lead_intelligence.scrapers.website_scraper.is_safe_url",
@@ -191,9 +176,7 @@ def test_fetch_website_rejects_oversized_content_length(mock_safe_url):
     respx.get(url).mock(
         return_value=httpx.Response(
             200,
-            headers={
-                "Content-Length": str(MAX_RESPONSE_SIZE + 1)
-            },
+            headers={"Content-Length": str(MAX_RESPONSE_SIZE + 1)},
             content=b"small response",
         )
     )
@@ -253,6 +236,7 @@ def test_fetch_website_accepts_response_under_size_limit(mock_safe_url):
 # =========================================================
 # REDIRECT SECURITY TESTS
 # =========================================================
+
 
 @respx.mock
 @patch(

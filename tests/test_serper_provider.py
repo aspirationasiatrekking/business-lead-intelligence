@@ -1,6 +1,7 @@
+from unittest.mock import Mock
 
 import pytest
-from unittest.mock import Mock
+from requests_ratelimiter import LimiterSession
 
 from src.lead_intelligence.search.serper_provider import (
     SerperSearchProvider,
@@ -20,11 +21,7 @@ def test_search_places_sends_correct_request(monkeypatch):
     provider = SerperSearchProvider()
 
     mock_response = Mock()
-    mock_response.json.return_value = {
-        "places": [
-            {"title": "Nepal Hiking Team"}
-        ]
-    }
+    mock_response.json.return_value = {"places": [{"title": "Nepal Hiking Team"}]}
 
     mock_post = Mock(return_value=mock_response)
 
@@ -35,11 +32,7 @@ def test_search_places_sends_correct_request(monkeypatch):
         country="np",
     )
 
-    assert result == {
-        "places": [
-            {"title": "Nepal Hiking Team"}
-        ]
-    }
+    assert result == {"places": [{"title": "Nepal Hiking Team"}]}
 
     mock_post.assert_called_once_with(
         "https://google.serper.dev/places",
@@ -90,31 +83,18 @@ def test_search_places_raises_http_error(monkeypatch):
     provider = SerperSearchProvider()
 
     mock_response = Mock()
-    mock_response.raise_for_status.side_effect = (
-        Exception("API request failed")
-    )
+    mock_response.raise_for_status.side_effect = Exception("API request failed")
 
-    monkeypatch.setattr(provider.session, "post", Mock(return_value=mock_response)) 
+    monkeypatch.setattr(provider.session, "post", Mock(return_value=mock_response))
 
     with pytest.raises(Exception, match="API request failed"):
         provider.search_places("Trekking companies")
-
-
-
-import pytest
-import requests
-
-from src.lead_intelligence.search.serper_provider import (
-    SerperSearchProvider,
-)
 
 
 @pytest.mark.parametrize(
     "query",
     ["", "   ", "\t", "\n"],
 )
-
-
 def test_rejects_empty_or_whitespace_queries(
     monkeypatch,
     query,
@@ -187,13 +167,12 @@ def test_rejects_non_integer_page_numbers(
     )
 
     with pytest.raises(
-        ValueError,
+        TypeError,
         match="Page must be an integer",
     ):
         provider.search_places("Trekking companies", page=page)
 
     provider.close()
-from requests_ratelimiter import LimiterSession
 
 
 def test_provider_uses_rate_limited_session(monkeypatch):
@@ -245,6 +224,7 @@ def test_rejects_invalid_num_values(monkeypatch, num):
 
     provider.close()
 
+
 @pytest.mark.parametrize("num", [1.5, "10", True, False, None])
 def test_rejects_non_integer_num(monkeypatch, num):
     monkeypatch.setenv("SERPER_API_KEY", "test-api-key")
@@ -257,7 +237,7 @@ def test_rejects_non_integer_num(monkeypatch, num):
     monkeypatch.setattr(provider.session, "post", unexpected_request)
 
     with pytest.raises(
-        ValueError,
+        TypeError,
         match="Number of results must be an integer",
     ):
         provider.search_places("Trekking companies", num=num)

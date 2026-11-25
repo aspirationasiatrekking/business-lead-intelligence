@@ -1,15 +1,12 @@
-
-import requests
-import pytest
-
-from src.lead_intelligence.search.serper_provider import (
-    SerperSearchProvider,
-)
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from email.utils import format_datetime
 from unittest.mock import Mock
 
+import pytest
+import requests
+
 from src.lead_intelligence.search.serper_provider import (
+    SerperSearchProvider,
     get_retry_after_seconds,
     wait_for_retry,
 )
@@ -45,7 +42,7 @@ def make_http_error(status_code):
     ],
 )
 def test_retries_connection_errors(provider, monkeypatch, error):
-   
+
     calls = []
 
     def fake_post(*args, **kwargs):
@@ -135,7 +132,6 @@ def test_does_not_retry_permanent_http_errors(
     assert len(calls) == 1
 
 
-
 def test_retry_after_numeric_header():
     response = requests.Response()
     response.status_code = 429
@@ -150,7 +146,7 @@ def test_retry_after_numeric_header():
 
 
 def test_retry_after_http_date():
-    future_date = datetime.now(timezone.utc) + timedelta(seconds=10)
+    future_date = datetime.now(UTC) + timedelta(seconds=10)
 
     response = requests.Response()
     response.status_code = 429

@@ -11,10 +11,7 @@ def is_safe_url(url: str | None) -> bool:
         if parsed.scheme not in {"http", "https"}:
             return False
 
-        if not parsed.hostname:
-            return False
-
-        return True
+        return bool(parsed.hostname)
 
     except ValueError:
         return False

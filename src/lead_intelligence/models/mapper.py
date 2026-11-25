@@ -1,11 +1,10 @@
-
 from urllib.parse import urlparse
 
-from src.lead_intelligence.utils.url_utils import normalize_website_url
-from src.lead_intelligence.models.business import Business
 from src.lead_intelligence.extractors.contact_extractor import (
     normalize_phone_number,
 )
+from src.lead_intelligence.models.business import Business
+from src.lead_intelligence.utils.url_utils import normalize_website_url
 
 
 def map_serper_place(

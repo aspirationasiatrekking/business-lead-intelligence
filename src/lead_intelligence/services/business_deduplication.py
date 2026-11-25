@@ -1,4 +1,3 @@
-
 import re
 from urllib.parse import urlparse
 
@@ -6,7 +5,6 @@ from src.lead_intelligence.models.business import Business
 
 
 class BusinessDeduplicationService:
-
     @staticmethod
     def normalize_domain(website: str | None) -> str | None:
         if not website:
@@ -49,11 +47,7 @@ class BusinessDeduplicationService:
         second_domain = self.normalize_domain(second.website)
 
         # Conflicting website domains indicate different identities.
-        if (
-            first_domain
-            and second_domain
-            and first_domain != second_domain
-        ):
+        if first_domain and second_domain and first_domain != second_domain:
             return False
 
         # Matching website domains are the strongest signal.
@@ -63,13 +57,13 @@ class BusinessDeduplicationService:
         first_phones = {
             normalized
             for phone in first.phone_numbers
-                if (normalized := self.normalize_phone(phone))
-                }
+            if (normalized := self.normalize_phone(phone))
+        }
 
         second_phones = {
             normalized
             for phone in second.phone_numbers
-                if (normalized := self.normalize_phone(phone))
+            if (normalized := self.normalize_phone(phone))
         }
 
         if first_phones.intersection(second_phones):
@@ -94,14 +88,10 @@ class BusinessDeduplicationService:
         incoming: Business,
     ) -> Business:
 
-        existing.emails = list(
-            dict.fromkeys(existing.emails + incoming.emails)
-        )
+        existing.emails = list(dict.fromkeys(existing.emails + incoming.emails))
 
         existing.phone_numbers = list(
-            dict.fromkeys(
-                existing.phone_numbers + incoming.phone_numbers
-            )
+            dict.fromkeys(existing.phone_numbers + incoming.phone_numbers)
         )
 
         if not existing.website:

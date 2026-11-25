@@ -1,10 +1,8 @@
-
 from src.lead_intelligence.models.business import Business
 from src.lead_intelligence.models.mapper import (
     map_serper_place,
     map_serper_places,
 )
-
 
 
 def test_map_complete_serper_place():
@@ -13,7 +11,7 @@ def test_map_complete_serper_place():
         "address": "Thamel, Kathmandu, Nepal",
         "phoneNumber": "+9779846041887",
         "website": "https://www.nepalhikingteam.com/",
-        "category": "Tour operator"
+        "category": "Tour operator",
     }
 
     business = map_serper_place(place)
@@ -26,9 +24,7 @@ def test_map_complete_serper_place():
 
 
 def test_map_serper_place_with_missing_fields():
-    place = {
-        "title": "Nepal Hiking Team"
-    }
+    place = {"title": "Nepal Hiking Team"}
 
     business = map_serper_place(place)
 
@@ -37,8 +33,6 @@ def test_map_serper_place_with_missing_fields():
     assert business.phone_numbers == []
     assert business.website is None
     assert business.category is None
-
-
 
 
 def test_map_multiple_serper_places():
@@ -61,7 +55,6 @@ def test_map_empty_serper_places():
     businesses = map_serper_places([])
 
     assert businesses == []
-
 
 
 def test_map_serper_place_normalizes_website():
@@ -108,9 +101,7 @@ def test_map_serper_place_rejects_invalid_website():
 
 
 def test_map_serper_place_uses_website_domain_when_title_missing():
-    place = {
-        "website": "https://www.nepalhikingteam.com/"
-    }
+    place = {"website": "https://www.nepalhikingteam.com/"}
 
     business = map_serper_place(place)
 
@@ -118,9 +109,7 @@ def test_map_serper_place_uses_website_domain_when_title_missing():
 
 
 def test_map_serper_place_without_title_or_valid_website():
-    place = {
-        "website": "invalid-url"
-    }
+    place = {"website": "invalid-url"}
 
     businesses = map_serper_places([place])
 

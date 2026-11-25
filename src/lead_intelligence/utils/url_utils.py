@@ -1,7 +1,5 @@
-
 import ipaddress
 import socket
-
 from urllib.parse import urlparse, urlunparse
 
 from src.lead_intelligence.search.serper_provider import is_google_redirect
@@ -65,14 +63,7 @@ def normalize_website_url(url: str | None) -> str | None:
 
         path = parsed_url.path.rstrip("/")
 
-        return urlunparse((
-            scheme,
-            hostname,
-            path,
-            "",
-            "",
-            ""
-        ))
+        return urlunparse((scheme, hostname, path, "", "", ""))
 
     except ValueError:
         return None
@@ -123,11 +114,7 @@ def is_safe_url(url: str | None) -> bool:
             port = 443 if parsed_url.scheme.lower() == "https" else 80
 
         try:
-            addresses = socket.getaddrinfo(
-                hostname,
-                port,
-                type=socket.SOCK_STREAM
-            )
+            addresses = socket.getaddrinfo(hostname, port, type=socket.SOCK_STREAM)
 
         except socket.gaierror:
             return False
@@ -148,10 +135,7 @@ def is_safe_url(url: str | None) -> bool:
         return False
 
 
-def is_safe_redirect(
-    original_url: str,
-    redirect_url: str
-) -> bool:
+def is_safe_redirect(original_url: str, redirect_url: str) -> bool:
     """
     Validate a redirect destination.
 

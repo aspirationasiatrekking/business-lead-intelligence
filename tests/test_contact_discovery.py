@@ -1,4 +1,3 @@
-
 from unittest.mock import patch
 
 from src.lead_intelligence.models.business import Business
@@ -7,15 +6,9 @@ from src.lead_intelligence.services.contact_discovery import (
 )
 
 
-@patch(
-    "src.lead_intelligence.services.contact_discovery.extract_phone_numbers"
-)
-@patch(
-    "src.lead_intelligence.services.contact_discovery.extract_emails"
-)
-@patch(
-    "src.lead_intelligence.services.contact_discovery.fetch_website"
-)
+@patch("src.lead_intelligence.services.contact_discovery.extract_phone_numbers")
+@patch("src.lead_intelligence.services.contact_discovery.extract_emails")
+@patch("src.lead_intelligence.services.contact_discovery.fetch_website")
 def test_successful_contact_discovery(
     mock_fetch,
     mock_emails,
@@ -47,9 +40,7 @@ def test_discovery_without_website():
     assert result.phone_numbers == []
 
 
-@patch(
-    "src.lead_intelligence.services.contact_discovery.fetch_website"
-)
+@patch("src.lead_intelligence.services.contact_discovery.fetch_website")
 def test_website_fetch_failure(mock_fetch):
     business = Business(
         name="Nepal Trekking",
@@ -65,15 +56,9 @@ def test_website_fetch_failure(mock_fetch):
     assert result.phone_numbers == []
 
 
-@patch(
-    "src.lead_intelligence.services.contact_discovery.extract_phone_numbers"
-)
-@patch(
-    "src.lead_intelligence.services.contact_discovery.extract_emails"
-)
-@patch(
-    "src.lead_intelligence.services.contact_discovery.fetch_website"
-)
+@patch("src.lead_intelligence.services.contact_discovery.extract_phone_numbers")
+@patch("src.lead_intelligence.services.contact_discovery.extract_emails")
+@patch("src.lead_intelligence.services.contact_discovery.fetch_website")
 def test_preserve_existing_phone_numbers(
     mock_fetch,
     mock_emails,
@@ -98,15 +83,9 @@ def test_preserve_existing_phone_numbers(
     ]
 
 
-@patch(
-    "src.lead_intelligence.services.contact_discovery.extract_phone_numbers"
-)
-@patch(
-    "src.lead_intelligence.services.contact_discovery.extract_emails"
-)
-@patch(
-    "src.lead_intelligence.services.contact_discovery.fetch_website"
-)
+@patch("src.lead_intelligence.services.contact_discovery.extract_phone_numbers")
+@patch("src.lead_intelligence.services.contact_discovery.extract_emails")
+@patch("src.lead_intelligence.services.contact_discovery.fetch_website")
 def test_remove_duplicate_contacts(
     mock_fetch,
     mock_emails,

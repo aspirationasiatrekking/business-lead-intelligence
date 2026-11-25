@@ -1,6 +1,5 @@
-
 import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from email.utils import parsedate_to_datetime
 from urllib.parse import urlparse
 
@@ -13,7 +12,6 @@ from tenacity import (
     stop_after_attempt,
     wait_exponential,
 )
-
 
 load_dotenv()
 
@@ -37,10 +35,7 @@ def is_retryable_error(error: Exception) -> bool:
     if isinstance(error, requests.exceptions.HTTPError):
         response = error.response
 
-        return (
-            response is not None
-            and response.status_code in RETRYABLE_STATUS_CODES
-        )
+        return response is not None and response.status_code in RETRYABLE_STATUS_CODES
 
     return False
 
@@ -72,11 +67,9 @@ def get_retry_after_seconds(error: Exception) -> float | None:
         retry_date = parsedate_to_datetime(retry_after)
 
         if retry_date.tzinfo is None:
-            retry_date = retry_date.replace(tzinfo=timezone.utc)
+            retry_date = retry_date.replace(tzinfo=UTC)
 
-        delay = (
-            retry_date - datetime.now(timezone.utc)
-        ).total_seconds()
+        delay = (retry_date - datetime.now(UTC)).total_seconds()
 
         return max(0.0, delay)
 
@@ -105,7 +98,6 @@ def wait_for_retry(retry_state) -> float:
 
 
 class SerperSearchProvider:
-
     BASE_URL = "https://google.serper.dev"
 
     REQUESTS_PER_SECOND = 1
@@ -156,13 +148,13 @@ class SerperSearchProvider:
             raise ValueError("Search query cannot be empty")
 
         if not isinstance(page, int) or isinstance(page, bool):
-            raise ValueError("Page must be an integer")
+            raise TypeError("Page must be an integer")
 
         if page < 1:
             raise ValueError("Page must be greater than or equal to 1")
-        
+
         if not isinstance(num, int) or isinstance(num, bool):
-            raise ValueError("Number of results must be an integer")
+            raise TypeError("Number of results must be an integer")
 
         if not 1 <= num <= 100:
             raise ValueError("Number of results must be between 1 and 100")
@@ -194,7 +186,8 @@ def is_google_redirect(url: str | None) -> bool:
     parsed = urlparse(url)
 
     return (
-        parsed.hostname in {
+        parsed.hostname
+        in {
             "www.google.com",
             "google.com",
             "www.google.co",

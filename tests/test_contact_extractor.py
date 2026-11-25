@@ -1,5 +1,8 @@
-
-from src.lead_intelligence.extractors.contact_extractor import extract_emails
+from src.lead_intelligence.extractors.contact_extractor import (
+    extract_emails,
+    extract_phone_numbers,
+    normalize_phone_number,
+)
 
 
 def test_extract_single_email():
@@ -53,12 +56,6 @@ def test_no_emails():
     assert result == []
 
 
-from src.lead_intelligence.extractors.contact_extractor import (
-    extract_emails,
-    extract_phone_numbers,
-)
-
-
 def test_extract_nepal_phone_number():
     text = "Contact us at 9812345678"
 
@@ -102,12 +99,6 @@ def test_no_phone_numbers():
     assert result == []
 
 
-
-from src.lead_intelligence.extractors.contact_extractor import (
-    normalize_phone_number,
-)
-
-
 def test_normalize_nepal_local_number():
     result = normalize_phone_number("984-6041887", region="NP")
     assert result == "+9779846041887"
@@ -131,7 +122,6 @@ def test_normalize_invalid_number():
 def test_normalize_invalid_input():
     result = normalize_phone_number("not a phone number", region="NP")
     assert result is None
-
 
 
 def test_reject_invalid_email_addresses():

@@ -1,4 +1,3 @@
-
 from src.lead_intelligence.models.business import Business
 from src.lead_intelligence.services.business_deduplication import (
     BusinessDeduplicationService,
@@ -104,7 +103,6 @@ def test_merge_contact_information_from_duplicates():
     ]
     assert result[0].phone_numbers == ["+9779846041887"]
     assert result[0].category == "Adventure Travel"
-
 
 
 def test_do_not_merge_different_domains_even_if_phone_matches():

@@ -1,10 +1,9 @@
-
 from openpyxl import load_workbook
 
-from src.lead_intelligence.models.business import Business
 from src.lead_intelligence.exporters.excel_exporter import (
     export_businesses_to_excel,
 )
+from src.lead_intelligence.models.business import Business
 
 
 def test_export_businesses_to_excel(tmp_path):
@@ -33,7 +32,7 @@ def test_export_businesses_to_excel(tmp_path):
 
     output_file = tmp_path / "business_leads.xlsx"
 
-    export_businesses_to_excel(businesses, str(output_file))
+    export_businesses_to_excel(businesses, str(output_file), region="NP")
 
     assert output_file.exists()
 
@@ -43,7 +42,7 @@ def test_export_businesses_to_excel(tmp_path):
     assert worksheet.title == "Business Leads"
 
     assert worksheet.max_row == 3
-    assert worksheet.max_column == 6
+    assert worksheet.max_column == 8
 
     assert worksheet["A1"].value == "Business Name"
     assert worksheet["B1"].value == "Address"
@@ -51,18 +50,26 @@ def test_export_businesses_to_excel(tmp_path):
     assert worksheet["D1"].value == "Phone"
     assert worksheet["E1"].value == "Website"
     assert worksheet["F1"].value == "Category"
+    assert worksheet["G1"].value == "Lead Score"
+    assert worksheet["H1"].value == "Lead Quality"
 
     assert worksheet["A2"].value == "Nepal Hiking Team"
     assert worksheet["C2"].value == "info@nepalhikingteam.com"
     assert worksheet["D2"].value == "01-4989212"
 
     assert worksheet["C3"].value == (
-        "info@nepaltrekkingexperts.com; "
-        "sales@nepaltrekkingexperts.com"
+        "info@nepaltrekkingexperts.com; sales@nepaltrekkingexperts.com"
     )
 
+    # Verify lead scoring
+    assert worksheet["G2"].value == 100
+    assert worksheet["H2"].value == "High"
+
+    assert worksheet["G3"].value == 100
+    assert worksheet["H3"].value == "High"
+
     assert worksheet.freeze_panes == "A2"
-    assert worksheet.auto_filter.ref == "A1:F3"
+    assert worksheet.auto_filter.ref == "A1:H3"
 
     workbook.close()
 
@@ -79,9 +86,11 @@ def test_export_empty_business_list(tmp_path):
     worksheet = workbook.active
 
     assert worksheet.max_row == 1
-    assert worksheet.max_column == 6
+    assert worksheet.max_column == 8
     assert worksheet["A1"].value == "Business Name"
     assert worksheet["C1"].value == "Emails"
+    assert worksheet["G1"].value == "Lead Score"
+    assert worksheet["H1"].value == "Lead Quality"
 
     workbook.close()
 
@@ -103,5 +112,7 @@ def test_export_business_without_emails(tmp_path):
     worksheet = workbook.active
 
     assert worksheet["C2"].value is None
+    assert worksheet["G2"].value == 0
+    assert worksheet["H2"].value == "Low"
 
     workbook.close()

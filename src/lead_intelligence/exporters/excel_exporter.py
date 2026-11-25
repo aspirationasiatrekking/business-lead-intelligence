@@ -1,19 +1,22 @@
-
 from openpyxl import Workbook
-from openpyxl.styles import Font, PatternFill, Alignment
+from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.utils import get_column_letter
 
 from src.lead_intelligence.models.business import Business
+from src.lead_intelligence.services.lead_scoring import LeadScoringService
 
 
 def export_businesses_to_excel(
     businesses: list[Business],
     output_path: str,
+    region: str | None = None,
 ) -> None:
 
     workbook = Workbook()
     worksheet = workbook.active
     worksheet.title = "Business Leads"
+
+    scoring_service = LeadScoringService()
 
     headers = [
         "Business Name",
@@ -22,19 +25,28 @@ def export_businesses_to_excel(
         "Phone",
         "Website",
         "Category",
+        "Lead Score",
+        "Lead Quality",
     ]
 
     worksheet.append(headers)
 
     for business in businesses:
-        worksheet.append([
-            business.name,
-            business.address,
-            "; ".join(business.emails),
-            ", ".join(business.phone_numbers),
-            business.website,
-            business.category,
-        ])
+        score = scoring_service.score_business(business, region=region)
+        quality = scoring_service.get_quality(score)
+
+        worksheet.append(
+            [
+                business.name,
+                business.address,
+                "; ".join(business.emails),
+                ", ".join(business.phone_numbers),
+                business.website,
+                business.category,
+                score,
+                quality,
+            ]
+        )
 
     for cell in worksheet[1]:
         cell.font = Font(
@@ -52,10 +64,7 @@ def export_businesses_to_excel(
         )
 
     for column in worksheet.columns:
-        max_length = max(
-            len(str(cell.value or ""))
-            for cell in column
-        )
+        max_length = max(len(str(cell.value or "")) for cell in column)
 
         column_letter = get_column_letter(column[0].column)
 

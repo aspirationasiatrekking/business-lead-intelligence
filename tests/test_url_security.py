@@ -1,12 +1,11 @@
-
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 import pytest
 
 from src.lead_intelligence.utils.url_utils import (
     is_public_ip,
-    is_safe_url,
     is_safe_redirect,
+    is_safe_url,
 )
 
 
@@ -51,18 +50,14 @@ def make_dns_result(ip):
 
 @patch("src.lead_intelligence.utils.url_utils.socket.getaddrinfo")
 def test_is_safe_url_allows_domain_with_public_ip(mock_dns):
-    mock_dns.return_value = [
-        make_dns_result("93.184.216.34")
-    ]
+    mock_dns.return_value = [make_dns_result("93.184.216.34")]
 
     assert is_safe_url("https://example.com") is True
 
 
 @patch("src.lead_intelligence.utils.url_utils.socket.getaddrinfo")
 def test_is_safe_url_rejects_domain_with_private_ip(mock_dns):
-    mock_dns.return_value = [
-        make_dns_result("192.168.1.1")
-    ]
+    mock_dns.return_value = [make_dns_result("192.168.1.1")]
 
     assert is_safe_url("https://example.com") is False
 
@@ -96,23 +91,25 @@ def test_is_safe_url_allows_public_ip_literal():
 
 @patch("src.lead_intelligence.utils.url_utils.socket.getaddrinfo")
 def test_is_safe_redirect_checks_destination(mock_dns):
-    mock_dns.return_value = [
-        make_dns_result("93.184.216.34")
-    ]
+    mock_dns.return_value = [make_dns_result("93.184.216.34")]
 
-    assert is_safe_redirect(
-        "https://example.com",
-        "https://another-example.com",
-    ) is True
+    assert (
+        is_safe_redirect(
+            "https://example.com",
+            "https://another-example.com",
+        )
+        is True
+    )
 
 
 @patch("src.lead_intelligence.utils.url_utils.socket.getaddrinfo")
 def test_is_safe_redirect_rejects_private_destination(mock_dns):
-    mock_dns.return_value = [
-        make_dns_result("127.0.0.1")
-    ]
+    mock_dns.return_value = [make_dns_result("127.0.0.1")]
 
-    assert is_safe_redirect(
-        "https://example.com",
-        "http://127.0.0.1",
-    ) is False
+    assert (
+        is_safe_redirect(
+            "https://example.com",
+            "http://127.0.0.1",
+        )
+        is False
+    )

@@ -1,6 +1,6 @@
+from unittest.mock import Mock
 
 import pytest
-from unittest.mock import Mock
 
 from src.lead_intelligence.search.serper_provider import (
     SerperSearchProvider,
@@ -60,9 +60,7 @@ def test_resolve_links_raises_http_error(monkeypatch):
     provider = SerperSearchProvider()
 
     mock_response = Mock()
-    mock_response.raise_for_status.side_effect = (
-        Exception("Resolve request failed")
-    )
+    mock_response.raise_for_status.side_effect = Exception("Resolve request failed")
 
     mock_post = Mock(return_value=mock_response)
     monkeypatch.setattr(provider.session, "post", mock_post)

@@ -1,7 +1,9 @@
-
 import pytest
 
-from src.lead_intelligence.utils.url_utils import is_valid_website
+from src.lead_intelligence.utils.url_utils import (
+    is_valid_website,
+    normalize_website_url,
+)
 
 
 @pytest.mark.parametrize(
@@ -20,11 +22,6 @@ from src.lead_intelligence.utils.url_utils import is_valid_website
 )
 def test_is_valid_website(url, expected):
     assert is_valid_website(url) == expected
-
-
-
-
-from src.lead_intelligence.utils.url_utils import normalize_website_url
 
 
 @pytest.mark.parametrize(

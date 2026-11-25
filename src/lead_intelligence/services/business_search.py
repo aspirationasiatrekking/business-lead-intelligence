@@ -1,16 +1,15 @@
-
+from src.lead_intelligence.models.business import Business
+from src.lead_intelligence.models.mapper import map_serper_places
 from src.lead_intelligence.search.serper_provider import (
     SerperSearchProvider,
     is_google_redirect,
 )
-from src.lead_intelligence.models.mapper import map_serper_places
-from src.lead_intelligence.models.business import Business
 from src.lead_intelligence.services.business_deduplication import (
     BusinessDeduplicationService,
 )
 
-class BusinessSearchService:
 
+class BusinessSearchService:
     DEFAULT_MAX_RESULTS = 10
     MAX_ALLOWED_RESULTS = 100
 
@@ -35,12 +34,11 @@ class BusinessSearchService:
     ) -> list[Business]:
 
         if not isinstance(max_results, int) or isinstance(max_results, bool):
-            raise ValueError("Maximum results must be an integer")
+            raise TypeError("Maximum results must be an integer")
 
         if not 1 <= max_results <= self.MAX_ALLOWED_RESULTS:
             raise ValueError(
-                f"Maximum results must be between 1 and "
-                f"{self.MAX_ALLOWED_RESULTS}"
+                f"Maximum results must be between 1 and {self.MAX_ALLOWED_RESULTS}"
             )
 
         results = self.provider.search_places(
@@ -53,8 +51,7 @@ class BusinessSearchService:
         places = results.get("places", [])
 
         has_redirects = any(
-            is_google_redirect(place.get("website"))
-            for place in places
+            is_google_redirect(place.get("website")) for place in places
         )
 
         if has_redirects:
