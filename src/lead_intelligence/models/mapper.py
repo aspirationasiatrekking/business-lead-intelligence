@@ -4,6 +4,10 @@ from src.lead_intelligence.extractors.contact_extractor import (
     normalize_phone_number,
 )
 from src.lead_intelligence.models.business import Business
+from src.lead_intelligence.models.processing_result import (
+    MappingResult,
+    ProcessingFailure,
+)
 from src.lead_intelligence.utils.url_utils import normalize_website_url
 
 
@@ -56,3 +60,40 @@ def map_serper_places(
             businesses.append(business)
 
     return businesses
+
+
+def map_serper_places_with_report(
+    places: list[dict],
+    region: str | None = None,
+) -> MappingResult:
+    result = MappingResult()
+
+    for index, place in enumerate(places):
+        if not isinstance(place, dict):
+            result.failures.append(
+                ProcessingFailure(
+                    item_index=index,
+                    stage="mapping",
+                    message="Expected a dictionary for the business record.",
+                )
+            )
+            continue
+
+        business = map_serper_place(place, region=region)
+
+        if business is None:
+            result.failures.append(
+                ProcessingFailure(
+                    item_index=index,
+                    stage="mapping",
+                    message="Business has no usable name or valid website.",
+                    item_name=place.get("title")
+                    if isinstance(place.get("title"), str)
+                    else None,
+                )
+            )
+            continue
+
+        result.businesses.append(business)
+
+    return result

@@ -2,6 +2,7 @@ from src.lead_intelligence.models.business import Business
 from src.lead_intelligence.models.mapper import (
     map_serper_place,
     map_serper_places,
+    map_serper_places_with_report,
 )
 
 
@@ -138,3 +139,54 @@ def test_map_serper_places_passes_selected_region():
     businesses = map_serper_places(places, region="NP")
 
     assert businesses[0].phone_numbers == ["+9779846041887"]
+
+
+def test_map_serper_places_with_report_tracks_successes_and_failures():
+    places = [
+        {"title": "Nepal Hiking Team"},
+        {"website": "https://www.example.com"},
+        {"website": "invalid-url"},
+        {"title": "Another Trekking Company"},
+    ]
+
+    result = map_serper_places_with_report(places)
+
+    assert len(result.businesses) == 3
+    assert len(result.failures) == 1
+    assert result.total_processed == 4
+
+    assert result.businesses[0].name == "Nepal Hiking Team"
+    assert result.businesses[1].name == "example.com"
+    assert result.businesses[2].name == "Another Trekking Company"
+
+    assert result.failures[0].item_index == 2
+    assert result.failures[0].stage == "mapping"
+    assert result.failures[0].message == (
+        "Business has no usable name or valid website."
+    )
+
+
+def test_map_serper_places_with_report_handles_invalid_record_types():
+    places = [
+        {"title": "Valid Business"},
+        "Invalid record",
+        None,
+        {"title": "Another Valid Business"},
+    ]
+
+    result = map_serper_places_with_report(places)
+
+    assert len(result.businesses) == 2
+    assert len(result.failures) == 2
+    assert result.total_processed == 4
+
+    assert result.failures[0].item_index == 1
+    assert result.failures[1].item_index == 2
+
+
+def test_map_serper_places_with_report_returns_empty_result():
+    result = map_serper_places_with_report([])
+
+    assert result.businesses == []
+    assert result.failures == []
+    assert result.total_processed == 0
