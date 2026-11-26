@@ -7,6 +7,7 @@ from src.lead_intelligence.models.business import Business
 from src.lead_intelligence.models.extraction_status import ExtractionStatus
 from src.lead_intelligence.utils.business_identity import normalize_serper_cid
 from src.lead_intelligence.utils.url_utils import normalize_website_url
+from src.lead_intelligence.utils.website_policy import is_candidate_business_website
 
 
 class BusinessDeduplicationService:
@@ -31,7 +32,7 @@ class BusinessDeduplicationService:
     @staticmethod
     def normalize_domain(website: str | None) -> str | None:
         """Return a normalized domain from a valid website."""
-        if not isinstance(website, str):
+        if not is_candidate_business_website(website):
             return None
 
         normalized_url = normalize_website_url(website)
@@ -326,6 +327,11 @@ class BusinessDeduplicationService:
             existing.contact_page_urls,
             incoming.contact_page_urls,
         )
+
+        for field_name in ("email_sources", "phone_sources"):
+            target = getattr(existing, field_name)
+            for key, urls in getattr(incoming, field_name).items():
+                target[key] = self._merge_unique_values(target.get(key, []), urls)
 
         existing.extraction_status = self._merge_extraction_status(
             existing.extraction_status,

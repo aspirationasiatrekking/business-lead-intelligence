@@ -42,6 +42,10 @@ class Business:
     latitude: float | None = None
     longitude: float | None = None
 
+    # Website evidence keyed by normalized email or E.164 number.
+    email_sources: dict[str, list[str]] = field(default_factory=dict)
+    phone_sources: dict[str, list[str]] = field(default_factory=dict)
+
     def __post_init__(self) -> None:
         if not isinstance(self.name, str):
             raise TypeError("Business name must be a string.")
@@ -115,6 +119,21 @@ class Business:
 
             # Prevent sharing caller-owned mutable lists.
             setattr(self, field_name, values.copy())
+
+        for field_name in ("email_sources", "phone_sources"):
+            sources = getattr(self, field_name)
+            if not isinstance(sources, dict):
+                raise TypeError(f"{field_name} must be a dictionary.")
+            copied = {}
+            for key, urls in sources.items():
+                if not isinstance(key, str) or not key.strip():
+                    raise ValueError("Contact source key must be nonempty text.")
+                if not isinstance(urls, list) or not all(
+                    isinstance(url, str) for url in urls
+                ):
+                    raise TypeError("Contact sources must be lists of strings.")
+                copied[key] = list(dict.fromkeys(urls))
+            setattr(self, field_name, copied)
 
         self.extraction_status = ExtractionStatus(self.extraction_status)
 

@@ -1,20 +1,30 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
 from src.lead_intelligence.models.business import Business
 from src.lead_intelligence.models.extraction_status import ExtractionStatus
-from src.lead_intelligence.scrapers.website_scraper import find_contact_pages
+from src.lead_intelligence.scrapers.website_scraper import (
+    FetchedPage,
+    find_contact_pages,
+)
 from src.lead_intelligence.services.contact_discovery import (
     ContactDiscoveryService,
 )
+
+
+class PageMock(MagicMock):
+    def __call__(self, *args, **kwargs):
+        value = super().__call__(*args, **kwargs)
+        return FetchedPage(value, args[0]) if isinstance(value, str) else value
+
 
 MODULE = "src.lead_intelligence.services.contact_discovery"
 
 
 @patch(f"{MODULE}.find_contact_pages")
-@patch(f"{MODULE}.fetch_website")
-@patch(f"{MODULE}.fetch_website_html")
+@patch(f"{MODULE}.fetch_contact_page", new_callable=PageMock)
+@patch(f"{MODULE}.fetch_homepage", new_callable=PageMock)
 def test_successful_contact_discovery(
     mock_homepage,
     mock_fetch,
@@ -48,8 +58,8 @@ def test_successful_contact_discovery(
     mock_fetch.assert_called_once_with("https://example.com/contact")
 
 
-@patch(f"{MODULE}.fetch_website")
-@patch(f"{MODULE}.fetch_website_html")
+@patch(f"{MODULE}.fetch_contact_page", new_callable=PageMock)
+@patch(f"{MODULE}.fetch_homepage", new_callable=PageMock)
 def test_discovery_without_website(
     mock_homepage,
     mock_fetch,
@@ -66,9 +76,9 @@ def test_discovery_without_website(
     mock_fetch.assert_not_called()
 
 
-@patch(f"{MODULE}.fetch_website")
+@patch(f"{MODULE}.fetch_contact_page", new_callable=PageMock)
 @patch(f"{MODULE}.find_contact_pages")
-@patch(f"{MODULE}.fetch_website_html")
+@patch(f"{MODULE}.fetch_homepage", new_callable=PageMock)
 def test_website_fetch_failure(
     mock_homepage,
     mock_contact_pages,
@@ -94,7 +104,7 @@ def test_website_fetch_failure(
 
 
 @patch(f"{MODULE}.find_contact_pages")
-@patch(f"{MODULE}.fetch_website_html")
+@patch(f"{MODULE}.fetch_homepage", new_callable=PageMock)
 def test_preserve_existing_phone_numbers(
     mock_homepage,
     mock_contact_pages,
@@ -125,7 +135,7 @@ def test_preserve_existing_phone_numbers(
 
 
 @patch(f"{MODULE}.find_contact_pages")
-@patch(f"{MODULE}.fetch_website_html")
+@patch(f"{MODULE}.fetch_homepage", new_callable=PageMock)
 def test_remove_duplicate_contacts(
     mock_homepage,
     mock_contact_pages,
@@ -164,7 +174,7 @@ def test_remove_duplicate_contacts(
     ]
 
 
-@patch(f"{MODULE}.fetch_website_html")
+@patch(f"{MODULE}.fetch_homepage", new_callable=PageMock)
 def test_homepage_failure_preserves_existing_contacts(
     mock_homepage,
 ):
@@ -185,8 +195,8 @@ def test_homepage_failure_preserves_existing_contacts(
 
 
 @patch(f"{MODULE}.find_contact_pages")
-@patch(f"{MODULE}.fetch_website")
-@patch(f"{MODULE}.fetch_website_html")
+@patch(f"{MODULE}.fetch_contact_page", new_callable=PageMock)
+@patch(f"{MODULE}.fetch_homepage", new_callable=PageMock)
 def test_discovery_limits_contact_pages_to_five(
     mock_homepage,
     mock_fetch,
@@ -218,8 +228,8 @@ def test_discovery_limits_contact_pages_to_five(
 
 
 @patch(f"{MODULE}.find_contact_pages")
-@patch(f"{MODULE}.fetch_website")
-@patch(f"{MODULE}.fetch_website_html")
+@patch(f"{MODULE}.fetch_contact_page", new_callable=PageMock)
+@patch(f"{MODULE}.fetch_homepage", new_callable=PageMock)
 def test_discovery_continues_after_contact_page_failure(
     mock_homepage,
     mock_fetch,
@@ -258,7 +268,7 @@ def test_discovery_continues_after_contact_page_failure(
 
 
 @patch(f"{MODULE}.find_contact_pages")
-@patch(f"{MODULE}.fetch_website_html")
+@patch(f"{MODULE}.fetch_homepage", new_callable=PageMock)
 def test_discovery_returns_same_business_instance(
     mock_homepage,
     mock_contact_pages,
@@ -291,7 +301,7 @@ def test_discovery_returns_same_business_instance(
         "https://google.com/goto?url=example",
     ],
 )
-@patch(f"{MODULE}.fetch_website_html")
+@patch(f"{MODULE}.fetch_homepage", new_callable=PageMock)
 def test_discovery_sets_no_website_status(
     mock_homepage,
     website,
@@ -308,7 +318,7 @@ def test_discovery_sets_no_website_status(
     mock_homepage.assert_not_called()
 
 
-@patch(f"{MODULE}.fetch_website_html")
+@patch(f"{MODULE}.fetch_homepage", new_callable=PageMock)
 def test_discovery_sets_failed_status(mock_homepage):
     business = Business(
         name="Example Business",
@@ -323,7 +333,7 @@ def test_discovery_sets_failed_status(mock_homepage):
 
 
 @patch(f"{MODULE}.find_contact_pages")
-@patch(f"{MODULE}.fetch_website_html")
+@patch(f"{MODULE}.fetch_homepage", new_callable=PageMock)
 def test_discovery_sets_success_status(
     mock_homepage,
     mock_pages,
@@ -343,7 +353,7 @@ def test_discovery_sets_success_status(
 
 
 @patch(f"{MODULE}.find_contact_pages")
-@patch(f"{MODULE}.fetch_website_html")
+@patch(f"{MODULE}.fetch_homepage", new_callable=PageMock)
 def test_discovery_sets_no_contacts_status(
     mock_homepage,
     mock_pages,
@@ -363,9 +373,9 @@ def test_discovery_sets_no_contacts_status(
     assert result.phone_numbers == ["+9779812345678"]
 
 
-@patch(f"{MODULE}.fetch_website")
+@patch(f"{MODULE}.fetch_contact_page", new_callable=PageMock)
 @patch(f"{MODULE}.find_contact_pages")
-@patch(f"{MODULE}.fetch_website_html")
+@patch(f"{MODULE}.fetch_homepage", new_callable=PageMock)
 def test_discovery_sets_partial_status(
     mock_homepage,
     mock_pages,
@@ -398,9 +408,9 @@ def test_discovery_sets_partial_status(
     ]
 
 
-@patch(f"{MODULE}.fetch_website")
+@patch(f"{MODULE}.fetch_contact_page", new_callable=PageMock)
 @patch(f"{MODULE}.find_contact_pages")
-@patch(f"{MODULE}.fetch_website_html")
+@patch(f"{MODULE}.fetch_homepage", new_callable=PageMock)
 def test_empty_page_text_is_not_fetch_failure(
     mock_homepage,
     mock_pages,
@@ -422,9 +432,9 @@ def test_empty_page_text_is_not_fetch_failure(
     assert result.extraction_status == ExtractionStatus.NO_CONTACTS
 
 
-@patch(f"{MODULE}.fetch_website")
+@patch(f"{MODULE}.fetch_contact_page", new_callable=PageMock)
 @patch(f"{MODULE}.find_contact_pages")
-@patch(f"{MODULE}.fetch_website_html")
+@patch(f"{MODULE}.fetch_homepage", new_callable=PageMock)
 def test_discovery_records_contributing_source_urls(
     mock_homepage,
     mock_pages,
@@ -466,7 +476,7 @@ def test_discovery_records_contributing_source_urls(
 
 
 @patch(f"{MODULE}.find_contact_pages")
-@patch(f"{MODULE}.fetch_website_html")
+@patch(f"{MODULE}.fetch_homepage", new_callable=PageMock)
 def test_discovery_preserves_previous_sources(
     mock_homepage,
     mock_pages,
@@ -488,9 +498,9 @@ def test_discovery_preserves_previous_sources(
     ]
 
 
-@patch(f"{MODULE}.fetch_website")
+@patch(f"{MODULE}.fetch_contact_page", new_callable=PageMock)
 @patch(f"{MODULE}.find_contact_pages")
-@patch(f"{MODULE}.fetch_website_html")
+@patch(f"{MODULE}.fetch_homepage", new_callable=PageMock)
 def test_discovery_deduplicates_contact_page_urls(
     mock_homepage,
     mock_pages,
@@ -521,9 +531,9 @@ def test_discovery_deduplicates_contact_page_urls(
     assert mock_fetch.call_count == 2
 
 
-@patch(f"{MODULE}.fetch_website")
+@patch(f"{MODULE}.fetch_contact_page", new_callable=PageMock)
 @patch(f"{MODULE}.find_contact_pages")
-@patch(f"{MODULE}.fetch_website_html")
+@patch(f"{MODULE}.fetch_homepage", new_callable=PageMock)
 def test_discovery_tracks_all_pages_but_limits_fetching(
     mock_homepage,
     mock_pages,
@@ -550,7 +560,7 @@ def test_discovery_tracks_all_pages_but_limits_fetching(
 
 
 @patch(f"{MODULE}.find_contact_pages")
-@patch(f"{MODULE}.fetch_website_html")
+@patch(f"{MODULE}.fetch_homepage", new_callable=PageMock)
 def test_discovery_invalidates_stale_lead_score(
     mock_homepage,
     mock_pages,
@@ -572,7 +582,7 @@ def test_discovery_invalidates_stale_lead_score(
 
 
 @patch(f"{MODULE}.find_contact_pages")
-@patch(f"{MODULE}.fetch_website_html")
+@patch(f"{MODULE}.fetch_homepage", new_callable=PageMock)
 def test_discovery_preserves_score_when_contacts_unchanged(
     mock_homepage,
     mock_pages,
@@ -593,7 +603,7 @@ def test_discovery_preserves_score_when_contacts_unchanged(
 
 
 @patch(f"{MODULE}.find_contact_pages")
-@patch(f"{MODULE}.fetch_website_html")
+@patch(f"{MODULE}.fetch_homepage", new_callable=PageMock)
 def test_repeated_discovery_does_not_duplicate_sources(
     mock_homepage,
     mock_pages,
@@ -616,7 +626,7 @@ def test_repeated_discovery_does_not_duplicate_sources(
     assert business.source_urls == ["https://example.com"]
 
 
-@patch(f"{MODULE}.fetch_website_html")
+@patch(f"{MODULE}.fetch_homepage", new_callable=PageMock)
 def test_failed_rediscovery_preserves_previous_contacts(
     mock_homepage,
 ):
@@ -643,7 +653,7 @@ def test_failed_rediscovery_preserves_previous_contacts(
 
 
 @patch(f"{MODULE}.find_contact_pages")
-@patch(f"{MODULE}.fetch_website_html")
+@patch(f"{MODULE}.fetch_homepage", new_callable=PageMock)
 def test_discovery_handles_contact_page_parsing_failure(
     mock_homepage,
     mock_pages,
@@ -669,7 +679,7 @@ def test_discovery_handles_contact_page_parsing_failure(
     ["NP", "np", " Np "],
 )
 @patch(f"{MODULE}.find_contact_pages")
-@patch(f"{MODULE}.fetch_website_html")
+@patch(f"{MODULE}.fetch_homepage", new_callable=PageMock)
 def test_discovery_normalizes_phone_region(
     mock_homepage,
     mock_pages,
@@ -691,7 +701,7 @@ def test_discovery_normalizes_phone_region(
     assert result.phone_numbers == ["+9779846041887"]
 
 
-@patch(f"{MODULE}.fetch_website_html")
+@patch(f"{MODULE}.fetch_homepage", new_callable=PageMock)
 def test_invalid_region_rejected_before_network_request(
     mock_homepage,
 ):

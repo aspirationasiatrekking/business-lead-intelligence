@@ -1,5 +1,5 @@
 import csv
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 from openpyxl import load_workbook
 
@@ -10,10 +10,18 @@ from src.lead_intelligence.exporters.excel_exporter import (
     export_businesses_to_excel,
 )
 from src.lead_intelligence.models.extraction_status import ExtractionStatus
+from src.lead_intelligence.scrapers.website_scraper import FetchedPage
 from src.lead_intelligence.search.serper_provider import SerperSearchProvider
 from src.lead_intelligence.services.business_search import BusinessSearchService
 from src.lead_intelligence.services.contact_discovery import ContactDiscoveryService
 from src.lead_intelligence.services.lead_scoring import LeadScoringService
+
+
+class PageMock(MagicMock):
+    def __call__(self, *args, **kwargs):
+        value = super().__call__(*args, **kwargs)
+        return FetchedPage(value, args[0]) if isinstance(value, str) else value
+
 
 CONTACT_MODULE = "src.lead_intelligence.services.contact_discovery"
 
@@ -108,11 +116,13 @@ def test_complete_business_pipeline(
 
     with (
         patch(
-            f"{CONTACT_MODULE}.fetch_website_html",
+            f"{CONTACT_MODULE}.fetch_homepage",
+            new_callable=PageMock,
             return_value=homepage_html,
         ) as mock_homepage,
         patch(
-            f"{CONTACT_MODULE}.fetch_website",
+            f"{CONTACT_MODULE}.fetch_contact_page",
+            new_callable=PageMock,
             return_value=("sales@example.com +97714989212"),
         ) as mock_contact_page,
     ):
@@ -274,7 +284,8 @@ def test_pipeline_handles_duplicates_and_mapping_failures(
     contact_service = ContactDiscoveryService()
 
     with patch(
-        f"{CONTACT_MODULE}.fetch_website_html",
+        f"{CONTACT_MODULE}.fetch_homepage",
+        new_callable=PageMock,
         return_value="<p>info@example.com</p>",
     ) as mock_homepage:
         for business in result.businesses:
@@ -348,11 +359,13 @@ def test_pipeline_handles_partial_and_failed_extraction(
 
     with (
         patch(
-            f"{CONTACT_MODULE}.fetch_website_html",
+            f"{CONTACT_MODULE}.fetch_homepage",
+            new_callable=PageMock,
             side_effect=[homepage_html, None],
         ),
         patch(
-            f"{CONTACT_MODULE}.fetch_website",
+            f"{CONTACT_MODULE}.fetch_contact_page",
+            new_callable=PageMock,
             return_value=None,
         ),
     ):
@@ -458,7 +471,8 @@ def test_pipeline_resolves_google_redirects(
     assert business.website == "https://example.com"
 
     with patch(
-        f"{CONTACT_MODULE}.fetch_website_html",
+        f"{CONTACT_MODULE}.fetch_homepage",
+        new_callable=PageMock,
         return_value="<p>info@example.com</p>",
     ) as mock_homepage:
         ContactDiscoveryService().discover(
@@ -583,7 +597,8 @@ def test_pipeline_supports_international_search_regions(
     assert business.phone_numbers == ["+12025550123"]
 
     with patch(
-        f"{CONTACT_MODULE}.fetch_website_html",
+        f"{CONTACT_MODULE}.fetch_homepage",
+        new_callable=PageMock,
         return_value="<p>sales@example.com</p>",
     ):
         ContactDiscoveryService().discover(

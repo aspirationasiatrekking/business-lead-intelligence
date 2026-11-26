@@ -1,6 +1,8 @@
 import re
+from urllib.parse import unquote
 
 import phonenumbers
+from bs4 import BeautifulSoup
 from email_validator import EmailNotValidError, validate_email
 
 
@@ -51,13 +53,15 @@ def extract_emails(text: str) -> list[str]:
     if not isinstance(text, str) or not text:
         return []
 
-    pattern = r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}"
+    # Match whole candidate tokens rather than fragments of invalid addresses.
+    pattern = r"[\w.!#$%&'*+/=?^`{|}~@-]+@[\w.@-]+"
 
     candidates = re.findall(pattern, text)
 
     unique_emails = []
 
     for candidate in candidates:
+        candidate = candidate.rstrip(".")
         try:
             validated = validate_email(
                 candidate,
@@ -73,3 +77,45 @@ def extract_emails(text: str) -> list[str]:
             continue
 
     return unique_emails
+
+
+def extract_html_contacts(
+    html: str,
+    region: str | None = None,
+) -> tuple[list[str], list[str]]:
+    """Extract visible text and explicit contact URI targets without fetching links."""
+    if not isinstance(html, str) or not html:
+        return [], []
+
+    soup = BeautifulSoup(html, "html.parser")
+    for tag in soup(["script", "style", "noscript", "svg", "template"]):
+        tag.decompose()
+
+    text = soup.get_text(separator=" ", strip=True)
+    emails = extract_emails(text)
+    phones = extract_phone_numbers(text, region=region)
+
+    for link in soup.find_all("a", href=True):
+        href = link.get("href")
+        if not isinstance(href, str):
+            continue
+        scheme, separator, target = href.strip().partition(":")
+        if not separator or scheme.lower() not in {"mailto", "tel"}:
+            continue
+        # Ignore mail subject/body and telephone URI parameters.
+        target = unquote(target.split("?", 1)[0])
+        if scheme.lower() == "mailto":
+            for recipient in target.split(","):
+                try:
+                    email = validate_email(
+                        recipient.strip(), check_deliverability=False
+                    ).normalized.lower()
+                except EmailNotValidError:
+                    continue
+                emails.append(email)
+        else:
+            number = normalize_phone_number(target.split(";", 1)[0], region=region)
+            if number:
+                phones.append(number)
+
+    return list(dict.fromkeys(emails)), list(dict.fromkeys(phones))

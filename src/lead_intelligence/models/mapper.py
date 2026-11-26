@@ -18,6 +18,7 @@ from src.lead_intelligence.utils.country_utils import (
     validate_country_code,
 )
 from src.lead_intelligence.utils.url_utils import normalize_website_url
+from src.lead_intelligence.utils.website_policy import is_candidate_business_website
 
 
 def get_optional_text(value) -> str | None:
@@ -86,7 +87,12 @@ def map_serper_place(
 ) -> Business | None:
     """Map an individual Serper place into a Business record."""
 
-    website = normalize_website_url(place.get("website"))
+    raw_website = place.get("website")
+    website = (
+        normalize_website_url(raw_website)
+        if is_candidate_business_website(raw_website)
+        else None
+    )
 
     name = place.get("title")
 

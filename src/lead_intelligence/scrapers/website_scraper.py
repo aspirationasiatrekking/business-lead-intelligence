@@ -1,5 +1,7 @@
 import time
-from urllib.parse import urljoin, urlparse, urlunparse
+import unicodedata
+from dataclasses import dataclass
+from urllib.parse import unquote, urljoin, urlparse, urlunparse
 
 import httpx
 from bs4 import BeautifulSoup
@@ -17,35 +19,38 @@ from src.lead_intelligence.utils.url_utils import (
     is_safe_url,
     is_valid_website,
 )
+from src.lead_intelligence.utils.website_policy import (
+    is_candidate_business_website,
+    same_website,
+)
 
 # =========================================================
 # CONTACT PAGE CONFIGURATION
 # =========================================================
 
 CONTACT_KEYWORDS = {
-    "contact",
-    "contact-us",
-    "about",
-    "about-us",
-    "reach-us",
-    "get-in-touch",
-    "get in touch",
-    "our-team",
-    "team",
-    "company",
-    "support",
-    "enquiry",
-    "inquiry",
+    3: (
+        "contact",
+        "get in touch",
+        "reach us",
+        "kontakt",
+        "contacto",
+        "contatti",
+        "联系我们",
+        "お問い合わせ",
+        "सम्पर्क",
+        "संपर्क",
+        "اتصل بنا",
+    ),
+    2: ("about", "enquiry", "inquiry", "support", "a propos", "über uns"),
+    1: ("team", "company"),
 }
 
-HIGH_PRIORITY_KEYWORDS = {
-    "contact",
-    "contact-us",
-    "get-in-touch",
-    "reach-us",
-    "about",
-    "about-us",
-}
+
+@dataclass(frozen=True, slots=True)
+class FetchedPage:
+    html: str
+    final_url: str
 
 
 # =========================================================
@@ -302,10 +307,13 @@ def create_secure_client() -> httpx.Client:
     retry=retry_if_exception(should_retry),
     reraise=True,
 )
-def _request_website_html(url: str) -> str:
+def _request_website_html(url: str, *, business_only: bool = False) -> FetchedPage:
     """Fetch and validate website HTML securely."""
 
     deadline = time.monotonic() + MAX_REQUEST_DURATION
+
+    if business_only and not is_candidate_business_website(url):
+        raise ValueError("Third-party website is not allowed")
 
     if not is_safe_url(url):
         raise ValueError("Unsafe website URL")
@@ -338,14 +346,17 @@ def _request_website_html(url: str) -> str:
                         location,
                     )
 
+                    if business_only and not same_website(url, current_url):
+                        raise ValueError("Cross-site business redirect")
+
                     check_download_deadline(deadline)
 
                 else:
                     response.raise_for_status()
 
-                    return read_response_html(
-                        response,
-                        deadline,
+                    return FetchedPage(
+                        html=read_response_html(response, deadline),
+                        final_url=current_url,
                     )
 
     raise ValueError("Maximum redirect limit exceeded")
@@ -356,11 +367,11 @@ def _request_website_html(url: str) -> str:
 # =========================================================
 
 
-def fetch_website_html(url: str) -> str | None:
+def fetch_website_page(url: str, *, business_only: bool = False) -> FetchedPage | None:
     """Fetch website HTML and handle final request failures."""
 
     try:
-        return _request_website_html(url)
+        return _request_website_html(url, business_only=business_only)
 
     except (
         httpx.HTTPError,
@@ -371,6 +382,11 @@ def fetch_website_html(url: str) -> str | None:
         print(f"Error fetching website {url}: {error}")
 
         return None
+
+
+def fetch_website_html(url: str) -> str | None:
+    page = fetch_website_page(url)
+    return page.html if page is not None else None
 
 
 def extract_website_text(html: str) -> str:
@@ -410,8 +426,8 @@ def normalize_page_url(url: str) -> str:
             parsed.scheme.lower(),
             parsed.netloc.lower(),
             parsed.path.rstrip("/") or "/",
-            "",
-            "",
+            parsed.params,
+            parsed.query,
             "",
         )
     )
@@ -422,95 +438,48 @@ def normalize_page_url(url: str) -> str:
 # =========================================================
 
 
-def find_contact_pages(url: str, html: str) -> list[str]:
-    """Discover and prioritize contact-related pages."""
-    soup = BeautifulSoup(html, "html.parser")
-
-    homepage = urlparse(url)
-
-    contact_pages = {}
-
-    for link in soup.find_all("a", href=True):
-        href = link["href"]
-
-        if not isinstance(href, str) or not href.strip():
-            continue
-
-        try:
-            full_url = urljoin(url, href.strip())
-            parsed_url = urlparse(full_url)
-
-            # Reject malformed port values.
-            _ = parsed_url.port
-
-        except ValueError:
-            continue
-
-        # Allow only HTTP and HTTPS.
-        if parsed_url.scheme not in {"http", "https"}:
-            continue
-
-        if not parsed_url.hostname:
-            continue
-
-        # Reject embedded URL credentials.
-        if parsed_url.username is not None or parsed_url.password is not None:
-            continue
-
-        # Only allow links from the same website.
-        if parsed_url.netloc.lower() != homepage.netloc.lower():
-            continue
-
-        # Ignore the homepage itself.
-        if parsed_url.path.rstrip("/") == homepage.path.rstrip("/"):
-            continue
-
-        link_text = link.get_text(" ", strip=True).lower()
-
-        path = parsed_url.path.lower()
-
-        searchable_text = f"{link_text} {path}"
-
-        normalized_text = searchable_text.replace("_", " ")
-        normalized_text = normalized_text.replace("-", " ")
-
-        score = 0
-
-        for keyword in CONTACT_KEYWORDS:
-            normalized_keyword = keyword.replace("-", " ")
-
-            if normalized_keyword in normalized_text:
-                score = max(score, 1)
-
-        for keyword in HIGH_PRIORITY_KEYWORDS:
-            normalized_keyword = keyword.replace("-", " ")
-
-            if normalized_keyword in normalized_text:
-                score = 2
-                break
-
-        if score > 0:
-            # Remove fragments because they are not separate HTTP pages.
-            full_url = urlunparse(parsed_url._replace(fragment=""))
-
-            normalized_url = normalize_page_url(full_url)
-
-            if normalized_url not in contact_pages:
-                contact_pages[normalized_url] = {
-                    "url": full_url,
-                    "score": score,
-                }
-
-            else:
-                contact_pages[normalized_url]["score"] = max(
-                    contact_pages[normalized_url]["score"],
-                    score,
-                )
-
-    sorted_pages = sorted(
-        contact_pages.values(),
-        key=lambda item: item["score"],
-        reverse=True,
+def contact_page_score(text: str) -> int:
+    normalized = " ".join(
+        "".join(
+            c if unicodedata.category(c)[0] in {"L", "M", "N"} else " "
+            for c in unquote(text).casefold()
+        ).split()
+    )
+    return max(
+        (
+            score
+            for score, words in CONTACT_KEYWORDS.items()
+            if any(f" {word} " in f" {normalized} " for word in words)
+        ),
+        default=0,
     )
 
-    return [page["url"] for page in sorted_pages]
+
+def find_contact_pages(url: str, html: str) -> list[str]:
+    """Rank same-site contact links without following external links."""
+    soup = BeautifulSoup(html, "html.parser")
+    for element in soup(["script", "style", "noscript", "svg", "template"]):
+        element.decompose()
+    pages = {}
+    for link in soup.find_all("a", href=True):
+        href = link.get("href")
+        if not isinstance(href, str) or not href.strip():
+            continue
+        if any(ord(c) < 32 or ord(c) == 127 for c in href) or "\\" in href:
+            continue
+        try:
+            full_url = urljoin(url, href.strip())
+            if not same_website(url, full_url):
+                continue
+            parsed = urlparse(full_url)
+            full_url = urlunparse(parsed._replace(fragment=""))
+            key = normalize_page_url(full_url)
+            if key == normalize_page_url(url):
+                continue
+        except ValueError:
+            continue
+        text = link.get_text(" ", strip=True)
+        score = max(contact_page_score(text), contact_page_score(parsed.path))
+        if score and (key not in pages or score > pages[key][1]):
+            pages[key] = (full_url, score)
+    return [url for url, _ in sorted(pages.values(), key=lambda p: -p[1])]

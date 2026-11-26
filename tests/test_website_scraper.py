@@ -10,6 +10,7 @@ from src.lead_intelligence.scrapers.website_scraper import (
     create_secure_client,
     fetch_website,
     fetch_website_html,
+    fetch_website_page,
     find_contact_pages,
 )
 from src.lead_intelligence.utils.secure_transport import (
@@ -535,3 +536,29 @@ def test_scraper_requests_uncompressed_content():
     request = route.calls.last.request
 
     assert request.headers["accept-encoding"] == "identity"
+
+
+@respx.mock
+def test_business_fetch_tracks_final_url():
+    original = "https://example.com"
+    final = "https://www.example.com/en/"
+    respx.get(original).mock(
+        return_value=httpx.Response(301, headers={"Location": final})
+    )
+    respx.get(final).mock(return_value=httpx.Response(200, text="Contact"))
+    page = fetch_website_page(original, business_only=True)
+    assert page is not None
+    assert page.final_url == final
+    assert page.html == "Contact"
+
+
+@respx.mock
+def test_business_fetch_blocks_cross_site_redirect():
+    original = "https://example.com"
+    final = "https://other.com/contact"
+    respx.get(original).mock(
+        return_value=httpx.Response(302, headers={"Location": final})
+    )
+    route = respx.get(final).mock(return_value=httpx.Response(200, text="Contact"))
+    assert fetch_website_page(original, business_only=True) is None
+    assert not route.called
