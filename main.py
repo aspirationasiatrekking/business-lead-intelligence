@@ -1,4 +1,5 @@
 from pathlib import Path
+from tempfile import mkdtemp
 
 from src.lead_intelligence.exporters.csv_exporter import (
     export_businesses_to_csv,
@@ -153,9 +154,9 @@ def main() -> None:
         exist_ok=True,
     )
 
-    excel_path = output_dir / "business_leads.xlsx"
-
-    csv_path = output_dir / "business_leads.csv"
+    run_dir = Path(mkdtemp(prefix="run-", dir=output_dir))
+    excel_path = run_dir / "business_leads.xlsx"
+    csv_path = run_dir / "business_leads.csv"
 
     export_businesses_to_excel(
         businesses,

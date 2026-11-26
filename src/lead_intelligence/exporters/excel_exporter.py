@@ -2,9 +2,14 @@ from openpyxl import Workbook
 from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.utils import get_column_letter
 
+from src.lead_intelligence.exporters.atomic_output import atomic_output
 from src.lead_intelligence.exporters.export_schema import (
     EXPORT_HEADERS,
     serialize_business,
+)
+from src.lead_intelligence.exporters.export_validation import (
+    MAX_EXCEL_ROWS,
+    validate_export_text,
 )
 from src.lead_intelligence.models.business import Business
 from src.lead_intelligence.services.lead_scoring import LeadScoringService
@@ -18,6 +23,9 @@ def append_safe_row(
     values: list | tuple,
 ) -> None:
     """Append values while storing untrusted strings as text."""
+    for value in values:
+        validate_export_text(value, excel=True)
+
     worksheet.append(values)
 
     for cell in worksheet[worksheet.max_row]:
@@ -124,46 +132,51 @@ def export_businesses_to_excel(
     businesses: list[Business],
     output_path: str,
     region: str | None = None,
+    *,
+    overwrite: bool = False,
 ) -> None:
     """Export business records to a formatted Excel workbook."""
+    if len(businesses) >= MAX_EXCEL_ROWS:
+        raise ValueError("Excel row limit exceeded (including the header).")
     scoring_service = LeadScoringService()
 
-    workbook = Workbook()
+    with atomic_output(output_path, ".xlsx", overwrite=overwrite) as temporary_path:
+        workbook = Workbook()
 
-    try:
-        worksheet = workbook.active
-        worksheet.title = "Business Leads"
-
-        append_safe_row(
-            worksheet,
-            EXPORT_HEADERS,
-        )
-
-        for business in businesses:
-            values = serialize_business(
-                business,
-                scoring_service=scoring_service,
-                region=region,
-            )
+        try:
+            worksheet = workbook.active
+            worksheet.title = "Business Leads"
 
             append_safe_row(
                 worksheet,
-                values,
+                EXPORT_HEADERS,
             )
 
-        style_header(worksheet)
+            for business in businesses:
+                values = serialize_business(
+                    business,
+                    scoring_service=scoring_service,
+                    region=region,
+                )
 
-        if businesses:
-            style_data_rows(worksheet)
+                append_safe_row(
+                    worksheet,
+                    values,
+                )
 
-        adjust_column_widths(worksheet)
+            style_header(worksheet)
 
-        worksheet.auto_filter.ref = worksheet.dimensions
-        worksheet.freeze_panes = "A2"
+            if businesses:
+                style_data_rows(worksheet)
 
-        workbook.save(output_path)
+            adjust_column_widths(worksheet)
 
-    finally:
-        workbook.close()
+            worksheet.auto_filter.ref = worksheet.dimensions
+            worksheet.freeze_panes = "A2"
+
+            workbook.save(temporary_path)
+
+        finally:
+            workbook.close()
 
     print(f"Excel file exported successfully: {output_path}")
