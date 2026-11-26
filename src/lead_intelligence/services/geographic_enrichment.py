@@ -54,7 +54,7 @@ class GeographicEnrichmentService:
                 "formatted_address"
             )
             if field == "country_code":
-                business.lead_score = None
+                business.invalidate_score()
 
     def enrich(self, business: Business) -> Business:
         if not business.address or business.geographic_conflicts:

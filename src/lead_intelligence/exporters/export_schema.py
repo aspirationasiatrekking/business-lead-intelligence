@@ -30,7 +30,7 @@ def serialize_business(
     """Convert a business into the shared export row format."""
     score = business.lead_score
 
-    if score is None:
+    if score is None or not scoring_service.is_score_current(business, region=region):
         score = scoring_service.score_business(
             business,
             region=region,

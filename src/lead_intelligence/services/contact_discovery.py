@@ -184,7 +184,7 @@ class ContactDiscoveryService:
             business.emails != original_emails
             or business.phone_numbers != original_phones
         ):
-            business.lead_score = None
+            business.invalidate_score()
 
         # Determine the final extraction status.
         if had_failures:

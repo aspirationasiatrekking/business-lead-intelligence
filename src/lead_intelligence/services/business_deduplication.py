@@ -349,7 +349,7 @@ class BusinessDeduplicationService:
 
         # A score calculated before enrichment may no longer be valid.
         if self._scoring_inputs(existing) != original_scoring_inputs:
-            existing.lead_score = None
+            existing.invalidate_score()
 
         return existing
 

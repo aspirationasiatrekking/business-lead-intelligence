@@ -4,6 +4,7 @@ from src.lead_intelligence.models.lead_quality import (
     LeadQuality,
     classify_lead_score,
 )
+from src.lead_intelligence.models.scoring_policy import MAX_SCORE, SCORING_VERSION
 
 
 @dataclass(frozen=True, slots=True)
@@ -16,6 +17,10 @@ class ScoringResult:
     address_points: int = 0
     category_points: int = 0
     contact_bonus: int = 0
+    policy_version: str = SCORING_VERSION
+    sourced_email_count: int = 0
+    sourced_phone_count: int = 0
+    warnings: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         values = (
@@ -25,6 +30,8 @@ class ScoringResult:
             self.address_points,
             self.category_points,
             self.contact_bonus,
+            self.sourced_email_count,
+            self.sourced_phone_count,
         )
 
         for value in values:
@@ -34,7 +41,7 @@ class ScoringResult:
     @property
     def total_score(self) -> int:
         return min(
-            100,
+            MAX_SCORE,
             self.email_points
             + self.phone_points
             + self.website_points

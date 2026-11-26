@@ -50,6 +50,12 @@ class Business:
     geographic_sources: dict[str, list[str]] = field(default_factory=dict)
     geographic_conflicts: list[str] = field(default_factory=list)
 
+    # Metadata for scores calculated by LeadScoringService.
+    score_version: str | None = None
+    _score_snapshot: tuple | None = field(
+        default=None, init=False, repr=False, compare=False
+    )
+
     def __post_init__(self) -> None:
         if not isinstance(self.name, str):
             raise TypeError("Business name must be a string.")
@@ -144,6 +150,11 @@ class Business:
 
         if self.lead_score is not None:
             classify_lead_score(self.lead_score)
+
+    def invalidate_score(self) -> None:
+        self.lead_score = None
+        self.score_version = None
+        self._score_snapshot = None
 
     @property
     def lead_quality(self) -> LeadQuality | None:
