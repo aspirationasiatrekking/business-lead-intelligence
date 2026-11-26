@@ -1,4 +1,9 @@
+import pytest
+
 from src.lead_intelligence.models.business import Business
+from src.lead_intelligence.models.extraction_status import (
+    ExtractionStatus,
+)
 from src.lead_intelligence.models.mapper import (
     map_serper_place,
     map_serper_places,
@@ -225,3 +230,205 @@ def test_map_serper_places_with_report_continues_after_mapping_exception(
     assert result.failures[0].item_index == 1
     assert result.failures[0].stage == "mapping"
     assert "Invalid business data" in result.failures[0].message
+
+
+def test_map_serper_places_skips_invalid_record_types():
+    places = [
+        {"title": "First Business"},
+        None,
+        "Invalid record",
+        {"title": "Second Business"},
+    ]
+
+    businesses = map_serper_places(places)
+
+    assert len(businesses) == 2
+    assert businesses[0].name == "First Business"
+    assert businesses[1].name == "Second Business"
+
+
+def test_map_serper_places_continues_after_validation_failure():
+    places = [
+        {"title": "First Business"},
+        {
+            "title": "Broken Business",
+            "address": 123,
+        },
+        {"title": "Second Business"},
+    ]
+
+    businesses = map_serper_places(places)
+
+    assert len(businesses) == 2
+    assert businesses[0].name == "First Business"
+    assert businesses[1].name == "Second Business"
+
+
+def test_map_serper_places_with_report_tracks_validation_failure():
+    places = [
+        {"title": "First Business"},
+        {
+            "title": "Broken Business",
+            "address": 123,
+        },
+        {"title": "Second Business"},
+    ]
+
+    result = map_serper_places_with_report(places)
+
+    assert len(result.businesses) == 2
+    assert len(result.failures) == 1
+    assert result.total_processed == 3
+
+    failure = result.failures[0]
+
+    assert failure.item_index == 1
+    assert failure.item_name == "Broken Business"
+    assert failure.stage == "mapping"
+    assert "TypeError" in failure.message
+    assert "address" in failure.message
+
+
+def test_map_serper_places_with_report_passes_region():
+    places = [
+        {
+            "title": "Example Business",
+            "phoneNumber": "2025550123",
+        }
+    ]
+
+    result = map_serper_places_with_report(
+        places,
+        region="US",
+    )
+
+    assert len(result.businesses) == 1
+    assert result.failures == []
+    assert result.businesses[0].phone_numbers == ["+12025550123"]
+
+
+def test_map_serper_places_matches_reporting_mapper():
+    places = [
+        {"title": "First Business"},
+        {"website": "invalid-url"},
+        {"title": "Second Business"},
+    ]
+
+    businesses = map_serper_places(places)
+    result = map_serper_places_with_report(places)
+
+    assert businesses == result.businesses
+    assert len(result.failures) == 1
+
+
+def test_mapper_preserves_formatted_address():
+    place = {
+        "title": "Example Trekking Company",
+        "address": "Thamel, Kathmandu, Bagmati, Nepal",
+    }
+
+    business = map_serper_place(place)
+
+    assert business.address == ("Thamel, Kathmandu, Bagmati, Nepal")
+
+    assert business.city is None
+    assert business.district is None
+    assert business.state is None
+    assert business.country is None
+    assert business.country_code is None
+
+
+@pytest.mark.parametrize(
+    "region",
+    ["NP", "US", "GB", "IN", None],
+)
+def test_mapper_does_not_infer_location_from_search_region(
+    region,
+):
+    place = {
+        "title": "International Travel Agency",
+    }
+
+    business = map_serper_place(
+        place,
+        region=region,
+    )
+
+    assert business.city is None
+    assert business.district is None
+    assert business.state is None
+    assert business.country is None
+    assert business.country_code is None
+
+
+def test_mapper_does_not_infer_country_from_phone_number():
+    place = {
+        "title": "International Travel Agency",
+        "phoneNumber": "+12025550123",
+    }
+
+    business = map_serper_place(
+        place,
+        region="NP",
+    )
+
+    assert business.phone_numbers == ["+12025550123"]
+    assert business.country is None
+    assert business.country_code is None
+
+
+def test_mapper_does_not_infer_country_from_website():
+    place = {
+        "title": "International Travel Agency",
+        "website": "https://example.com.np",
+    }
+
+    business = map_serper_place(place)
+
+    assert business.website == "https://example.com.np"
+    assert business.country is None
+    assert business.country_code is None
+
+
+def test_mapper_does_not_claim_unvisited_website_as_source():
+    place = {
+        "title": "Example Business",
+        "website": "https://example.com",
+    }
+
+    business = map_serper_place(place)
+
+    assert business.website == "https://example.com"
+    assert business.source_urls == []
+    assert business.contact_page_urls == []
+
+
+@pytest.mark.parametrize(
+    "place",
+    [
+        {"title": "Example Business"},
+        {
+            "title": "Example Business",
+            "website": "https://example.com",
+        },
+    ],
+)
+def test_mapper_initializes_extraction_as_pending(place):
+    business = map_serper_place(place)
+
+    assert business.extraction_status == ExtractionStatus.PENDING
+
+
+def test_mapper_initializes_business_without_lead_score():
+    place = {
+        "title": "Example Business",
+        "website": "https://example.com",
+        "phoneNumber": "+12025550123",
+        "address": "Example Street",
+        "category": "Travel agency",
+    }
+
+    business = map_serper_place(place)
+
+    assert business.lead_score is None
+    assert business.lead_quality is None

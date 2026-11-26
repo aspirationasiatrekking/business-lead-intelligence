@@ -66,7 +66,16 @@ def test_resolve_links_raises_http_error(monkeypatch):
     monkeypatch.setattr(provider.session, "post", mock_post)
 
     with pytest.raises(Exception, match="Resolve request failed"):
-        provider.resolve_links({"places": []})
+        provider.resolve_links(
+            {
+                "places": [
+                    {
+                        "title": "Example Business",
+                        "website": "https://google.com/goto?url=example",
+                    }
+                ]
+            }
+        )
 
 
 @pytest.mark.parametrize(
@@ -98,6 +107,201 @@ def test_resolve_links_rejects_invalid_response_structure(
     )
 
     with pytest.raises(ValueError, match="Serper Places response"):
-        provider.resolve_links({"places": []})
+        provider.resolve_links(
+            {
+                "places": [
+                    {
+                        "title": "Example Business",
+                        "website": "https://google.com/goto?url=example",
+                    }
+                ]
+            }
+        )
 
     provider.close()
+
+
+@pytest.mark.parametrize(
+    "results",
+    [
+        None,
+        [],
+        "invalid",
+        {},
+        {"places": None},
+        {"places": "invalid"},
+        {"places": {}},
+    ],
+)
+def test_resolve_links_rejects_invalid_input(
+    monkeypatch,
+    results,
+):
+    monkeypatch.setenv("SERPER_API_KEY", "test-api-key")
+
+    provider = SerperSearchProvider()
+    mock_post = Mock()
+
+    monkeypatch.setattr(provider.session, "post", mock_post)
+
+    try:
+        with pytest.raises(
+            ValueError,
+            match="Serper Places response",
+        ):
+            provider.resolve_links(results)
+
+        mock_post.assert_not_called()
+    finally:
+        provider.close()
+
+
+def test_resolve_links_skips_empty_places(monkeypatch):
+    monkeypatch.setenv("SERPER_API_KEY", "test-api-key")
+
+    provider = SerperSearchProvider()
+    mock_post = Mock()
+
+    monkeypatch.setattr(provider.session, "post", mock_post)
+
+    results = {"places": []}
+
+    try:
+        assert provider.resolve_links(results) == results
+
+        mock_post.assert_not_called()
+    finally:
+        provider.close()
+
+
+def test_resolve_links_skips_results_without_redirects(monkeypatch):
+    monkeypatch.setenv("SERPER_API_KEY", "test-api-key")
+
+    provider = SerperSearchProvider()
+    mock_post = Mock()
+
+    monkeypatch.setattr(provider.session, "post", mock_post)
+
+    results = {
+        "places": [
+            {
+                "title": "First Business",
+                "website": "https://example.com",
+            },
+            {
+                "title": "Second Business",
+            },
+        ]
+    }
+
+    try:
+        assert provider.resolve_links(results) == results
+
+        mock_post.assert_not_called()
+    finally:
+        provider.close()
+
+
+def test_resolve_links_handles_malformed_records_without_redirects(
+    monkeypatch,
+):
+    monkeypatch.setenv("SERPER_API_KEY", "test-api-key")
+
+    provider = SerperSearchProvider()
+    mock_post = Mock()
+
+    monkeypatch.setattr(provider.session, "post", mock_post)
+
+    results = {
+        "places": [
+            None,
+            "invalid record",
+            {"website": 123},
+            {"website": "https://[invalid"},
+            {"title": "Valid Business"},
+        ]
+    }
+
+    try:
+        assert provider.resolve_links(results) == results
+
+        mock_post.assert_not_called()
+    finally:
+        provider.close()
+
+
+def test_resolve_links_preserves_metadata_when_skipping(
+    monkeypatch,
+):
+    monkeypatch.setenv("SERPER_API_KEY", "test-api-key")
+
+    provider = SerperSearchProvider()
+    mock_post = Mock()
+
+    monkeypatch.setattr(provider.session, "post", mock_post)
+
+    results = {
+        "places": [
+            {
+                "title": "Example Business",
+                "website": "https://example.com",
+            }
+        ],
+        "searchParameters": {
+            "q": "Travel agencies",
+            "gl": "np",
+        },
+    }
+
+    try:
+        result = provider.resolve_links(results)
+
+        assert result == results
+        assert result["searchParameters"]["gl"] == "np"
+
+        mock_post.assert_not_called()
+    finally:
+        provider.close()
+
+
+@pytest.mark.parametrize(
+    "invalid_record",
+    [None, "Invalid record", 123, [], True],
+)
+def test_resolve_links_skips_mixed_malformed_batches(
+    monkeypatch,
+    invalid_record,
+):
+    monkeypatch.setenv("SERPER_API_KEY", "test-api-key")
+
+    provider = SerperSearchProvider()
+    mock_post = Mock()
+
+    monkeypatch.setattr(provider.session, "post", mock_post)
+
+    results = {
+        "places": [
+            {"title": "First Business"},
+            invalid_record,
+            {
+                "title": "Second Business",
+                "website": "https://google.com/goto?url=example",
+            },
+        ],
+        "searchParameters": {
+            "q": "Travel agencies",
+            "gl": "np",
+        },
+    }
+
+    try:
+        result = provider.resolve_links(results)
+
+        assert result == results
+        assert len(result["places"]) == 3
+        assert result["places"][1] == invalid_record
+        assert result["searchParameters"]["gl"] == "np"
+
+        mock_post.assert_not_called()
+    finally:
+        provider.close()

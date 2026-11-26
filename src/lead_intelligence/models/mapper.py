@@ -15,6 +15,7 @@ def map_serper_place(
     place: dict,
     region: str | None = None,
 ) -> Business | None:
+    """Map an individual Serper place into a Business record."""
     website = normalize_website_url(place.get("website"))
 
     name = place.get("title")
@@ -47,25 +48,11 @@ def map_serper_place(
     )
 
 
-def map_serper_places(
-    places: list[dict],
-    region: str | None = None,
-) -> list[Business]:
-    businesses = []
-
-    for place in places:
-        business = map_serper_place(place, region=region)
-
-        if business is not None:
-            businesses.append(business)
-
-    return businesses
-
-
 def map_serper_places_with_report(
     places: list[dict],
     region: str | None = None,
 ) -> MappingResult:
+    """Map business records while isolating individual failures."""
     result = MappingResult()
 
     for index, place in enumerate(places):
@@ -79,8 +66,16 @@ def map_serper_places_with_report(
             )
             continue
 
+        item_name = place.get("title")
+
+        if not isinstance(item_name, str):
+            item_name = None
+
         try:
-            business = map_serper_place(place, region=region)
+            business = map_serper_place(
+                place,
+                region=region,
+            )
 
             if business is None:
                 result.failures.append(
@@ -88,9 +83,7 @@ def map_serper_places_with_report(
                         item_index=index,
                         stage="mapping",
                         message="Business has no usable name or valid website.",
-                        item_name=place.get("title")
-                        if isinstance(place.get("title"), str)
-                        else None,
+                        item_name=item_name,
                     )
                 )
                 continue
@@ -103,10 +96,21 @@ def map_serper_places_with_report(
                     item_index=index,
                     stage="mapping",
                     message=f"{type(exc).__name__}: {exc}",
-                    item_name=place.get("title")
-                    if isinstance(place.get("title"), str)
-                    else None,
+                    item_name=item_name,
                 )
             )
 
     return result
+
+
+def map_serper_places(
+    places: list[dict],
+    region: str | None = None,
+) -> list[Business]:
+    """Map business records using the failure-isolated batch mapper."""
+    result = map_serper_places_with_report(
+        places,
+        region=region,
+    )
+
+    return result.businesses

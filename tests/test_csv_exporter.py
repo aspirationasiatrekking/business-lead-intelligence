@@ -104,7 +104,7 @@ def test_export_formula_like_business_names_safely(
     with open(output_file, encoding="utf-8-sig", newline="") as file:
         rows = list(csv.reader(file))
 
-    assert rows[1][0] == f"'{malicious_value}"
+    assert rows[1][0] == f"'{malicious_value.strip()}"
 
 
 def test_export_formula_like_values_in_multiple_fields(tmp_path):
@@ -125,3 +125,24 @@ def test_export_formula_like_values_in_multiple_fields(tmp_path):
     assert rows[1][1] == "'=HYPERLINK('https://example.com')"
     assert rows[1][2] == "'=malicious@example.com"
     assert rows[1][5] == "'@SUM(A1:A2)"
+
+
+@pytest.mark.parametrize(
+    "malicious_value",
+    ["  =1+1", "\t=1+1", "\n=1+1"],
+)
+def test_csv_export_handles_unnormalized_formula_values(
+    tmp_path,
+    malicious_value,
+):
+    business = Business(name="Example Business")
+    business.name = malicious_value
+
+    output_file = tmp_path / "unsafe_value.csv"
+
+    export_businesses_to_csv([business], str(output_file))
+
+    with open(output_file, encoding="utf-8-sig", newline="") as file:
+        rows = list(csv.reader(file))
+
+    assert rows[1][0] == f"'{malicious_value}"

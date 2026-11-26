@@ -141,11 +141,38 @@ def test_export_formula_like_business_names_as_text(
     export_businesses_to_excel([business], str(output_file))
 
     workbook = load_workbook(output_file)
-    worksheet = workbook.active
 
-    cell = worksheet["A2"]
+    try:
+        worksheet = workbook.active
+        cell = worksheet["A2"]
 
-    assert cell.value == malicious_value
-    assert cell.data_type == "s"
+        assert cell.value == malicious_value.strip()
+        assert cell.data_type == "s"
+    finally:
+        workbook.close()
 
-    workbook.close()
+
+@pytest.mark.parametrize(
+    "malicious_value",
+    ["  =1+1", "\t=1+1", "\n=1+1"],
+)
+def test_excel_export_handles_unnormalized_formula_values(
+    tmp_path,
+    malicious_value,
+):
+    business = Business(name="Example Business")
+    business.name = malicious_value
+
+    output_file = tmp_path / "unsafe_value.xlsx"
+
+    export_businesses_to_excel([business], str(output_file))
+
+    workbook = load_workbook(output_file)
+
+    try:
+        cell = workbook.active["A2"]
+
+        assert cell.value == malicious_value
+        assert cell.data_type == "s"
+    finally:
+        workbook.close()

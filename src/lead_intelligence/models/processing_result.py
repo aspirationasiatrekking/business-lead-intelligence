@@ -19,3 +19,25 @@ class MappingResult:
     @property
     def total_processed(self) -> int:
         return len(self.businesses) + len(self.failures)
+
+
+@dataclass
+class SearchResult:
+    businesses: list[Business] = field(default_factory=list)
+    failures: list[ProcessingFailure] = field(default_factory=list)
+
+    total_discovered: int = 0
+    total_mapped: int = 0
+    duplicate_count: int = 0
+
+    @property
+    def total_returned(self) -> int:
+        return len(self.businesses)
+
+    @property
+    def total_failed(self) -> int:
+        return len(self.failures)
+
+    @property
+    def has_failures(self) -> bool:
+        return bool(self.failures)

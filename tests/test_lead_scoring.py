@@ -73,3 +73,56 @@ def test_get_quality_rejects_invalid_scores(score):
 
     with pytest.raises(ValueError):
         service.get_quality(score)
+
+
+def test_score_business_does_not_modify_business():
+    service = LeadScoringService()
+
+    business = Business(
+        name="Example Business",
+        emails=["info@example.com"],
+    )
+
+    assert service.score_business(business) == 30
+    assert business.lead_score is None
+
+
+def test_evaluate_business_stores_lead_score():
+    service = LeadScoringService()
+
+    business = Business(
+        name="Example Business",
+        emails=["info@example.com"],
+    )
+
+    score = service.evaluate_business(business)
+
+    assert score == 30
+    assert business.lead_score == 30
+    assert business.lead_quality == "Low"
+
+
+def test_evaluate_business_recalculates_existing_score():
+    service = LeadScoringService()
+
+    business = Business(
+        name="Example Business",
+        lead_score=100,
+    )
+
+    score = service.evaluate_business(business)
+
+    assert score == 0
+    assert business.lead_score == 0
+    assert business.lead_quality == "Low"
+
+
+@pytest.mark.parametrize(
+    "score",
+    [True, False, 50.5, "80", None],
+)
+def test_get_quality_rejects_invalid_score_types(score):
+    service = LeadScoringService()
+
+    with pytest.raises(ValueError):
+        service.get_quality(score)

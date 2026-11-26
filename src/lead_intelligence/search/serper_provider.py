@@ -1,3 +1,4 @@
+import math
 import os
 from datetime import UTC, datetime
 from email.utils import parsedate_to_datetime
@@ -11,6 +12,10 @@ from tenacity import (
     retry_if_exception,
     stop_after_attempt,
     wait_exponential,
+)
+
+from src.lead_intelligence.utils.country_utils import (
+    normalize_country_code,
 )
 
 load_dotenv()
@@ -45,8 +50,7 @@ def is_retryable_error(error: Exception) -> bool:
 
 
 def get_retry_after_seconds(error: Exception) -> float | None:
-    """Extract the Retry-After delay from an HTTP response."""
-
+    """Extract a finite Retry-After delay from an HTTP response."""
     if not isinstance(error, requests.exceptions.HTTPError):
         return None
 
@@ -57,16 +61,27 @@ def get_retry_after_seconds(error: Exception) -> float | None:
 
     retry_after = response.headers.get("Retry-After")
 
+    if not isinstance(retry_after, str):
+        return None
+
+    retry_after = retry_after.strip()
+
     if not retry_after:
         return None
 
-    # Retry-After can contain a number of seconds.
+    # Handle numeric delays.
     try:
-        return max(0.0, float(retry_after))
+        delay = float(retry_after)
+
+        if not math.isfinite(delay):
+            return None
+
+        return max(0.0, delay)
+
     except ValueError:
         pass
 
-    # Or it can contain an HTTP date.
+    # Handle HTTP date delays.
     try:
         retry_date = parsedate_to_datetime(retry_after)
 
@@ -170,9 +185,15 @@ class SerperSearchProvider:
         page: int = 1,
         num: int = 10,
     ) -> dict:
+        if not isinstance(query, str):
+            raise TypeError("Search query must be a string")
 
-        if not query or not query.strip():
+        query = query.strip()
+
+        if not query:
             raise ValueError("Search query cannot be empty")
+
+        country = normalize_country_code(country)
 
         if not isinstance(page, int) or isinstance(page, bool):
             raise TypeError("Page must be an integer")
@@ -187,13 +208,13 @@ class SerperSearchProvider:
             raise ValueError("Number of results must be between 1 and 100")
 
         payload = {
-            "q": query.strip(),
+            "q": query,
             "hl": "en",
             "page": page,
             "num": num,
         }
 
-        if country:
+        if country is not None:
             payload["gl"] = country
 
         response = self._post("places", payload)
@@ -201,6 +222,25 @@ class SerperSearchProvider:
         return self._validate_places_response(response)
 
     def resolve_links(self, results: dict) -> dict:
+        """Resolve supported Google redirects in Serper Places results."""
+        self._validate_places_response(results)
+
+        places = results["places"]
+
+        if not places:
+            return results
+
+        # Preserve malformed records for downstream failure reporting.
+        if any(not isinstance(place, dict) for place in places):
+            return results
+
+        has_redirects = any(
+            is_google_redirect(place.get("website")) for place in places
+        )
+
+        if not has_redirects:
+            return results
+
         response = self._post("resolve", results)
 
         return self._validate_places_response(response)
@@ -211,13 +251,33 @@ class SerperSearchProvider:
 
 
 def is_google_redirect(url: str | None) -> bool:
+    """Identify supported Google business website redirect URLs."""
+    if not isinstance(url, str):
+        return False
+
+    url = url.strip()
+
     if not url:
         return False
 
-    parsed = urlparse(url)
+    try:
+        parsed = urlparse(url)
+        hostname = parsed.hostname
+
+        # Accessing port also validates malformed port values.
+        _ = parsed.port
+
+    except ValueError:
+        return False
+
+    if parsed.scheme not in {"http", "https"}:
+        return False
+
+    if parsed.username is not None or parsed.password is not None:
+        return False
 
     return (
-        parsed.hostname
+        hostname
         in {
             "www.google.com",
             "google.com",

@@ -3,6 +3,10 @@ from src.lead_intelligence.extractors.contact_extractor import (
     normalize_phone_number,
 )
 from src.lead_intelligence.models.business import Business
+from src.lead_intelligence.models.lead_quality import (
+    LeadQuality,
+    classify_lead_score,
+)
 from src.lead_intelligence.utils.url_utils import is_valid_website
 
 
@@ -43,7 +47,10 @@ class LeadScoringService:
         score = 0
 
         valid_email = self.has_valid_email(business.emails)
-        valid_phone = self.has_valid_phone(business.phone_numbers, region=region)
+        valid_phone = self.has_valid_phone(
+            business.phone_numbers,
+            region=region,
+        )
         valid_website = self.has_valid_website(business.website)
 
         if valid_email:
@@ -75,18 +82,18 @@ class LeadScoringService:
         return min(score, self.MAX_SCORE)
 
     @staticmethod
-    def get_quality(score: int) -> str:
-        if (
-            not isinstance(score, int)
-            or isinstance(score, bool)
-            or not 0 <= score <= 100
-        ):
-            raise ValueError("Score must be an integer between 0 and 100.")
+    def get_quality(score: int) -> LeadQuality:
+        return classify_lead_score(score)
 
-        if score >= 80:
-            return "High"
+    def evaluate_business(
+        self,
+        business: Business,
+        region: str | None = None,
+    ) -> int:
+        """Calculate and store the current lead score."""
+        business.lead_score = self.score_business(
+            business,
+            region=region,
+        )
 
-        if score >= 50:
-            return "Medium"
-
-        return "Low"
+        return business.lead_score

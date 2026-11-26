@@ -305,3 +305,139 @@ def test_search_places_rejects_invalid_json(monkeypatch):
         provider.search_places("Trekking companies")
 
     provider.close()
+
+
+@pytest.mark.parametrize(
+    "query",
+    [None, 123, True, [], {}],
+)
+def test_rejects_non_string_queries(monkeypatch, query):
+    monkeypatch.setenv("SERPER_API_KEY", "test-api-key")
+
+    provider = SerperSearchProvider()
+    mock_post = Mock()
+
+    monkeypatch.setattr(provider.session, "post", mock_post)
+
+    try:
+        with pytest.raises(
+            TypeError,
+            match="Search query must be a string",
+        ):
+            provider.search_places(query)
+
+        mock_post.assert_not_called()
+    finally:
+        provider.close()
+
+
+@pytest.mark.parametrize(
+    "country",
+    ["", " ", "N", "NPL", "12", "N1", "日本"],
+)
+def test_rejects_invalid_country_codes(monkeypatch, country):
+    monkeypatch.setenv("SERPER_API_KEY", "test-api-key")
+
+    provider = SerperSearchProvider()
+    mock_post = Mock()
+
+    monkeypatch.setattr(provider.session, "post", mock_post)
+
+    try:
+        with pytest.raises(
+            ValueError,
+            match="Country code must contain two ASCII letters",
+        ):
+            provider.search_places(
+                "Travel agencies",
+                country=country,
+            )
+
+        mock_post.assert_not_called()
+    finally:
+        provider.close()
+
+
+@pytest.mark.parametrize(
+    "country",
+    [123, True, [], {}],
+)
+def test_rejects_non_string_country_codes(
+    monkeypatch,
+    country,
+):
+    monkeypatch.setenv("SERPER_API_KEY", "test-api-key")
+
+    provider = SerperSearchProvider()
+    mock_post = Mock()
+
+    monkeypatch.setattr(provider.session, "post", mock_post)
+
+    try:
+        with pytest.raises(
+            TypeError,
+            match="Country code must be a string",
+        ):
+            provider.search_places(
+                "Travel agencies",
+                country=country,
+            )
+
+        mock_post.assert_not_called()
+    finally:
+        provider.close()
+
+
+@pytest.mark.parametrize(
+    ("country", "expected"),
+    [
+        ("NP", "np"),
+        (" us ", "us"),
+        ("GB", "gb"),
+    ],
+)
+def test_normalizes_country_code(
+    monkeypatch,
+    country,
+    expected,
+):
+    monkeypatch.setenv("SERPER_API_KEY", "test-api-key")
+
+    provider = SerperSearchProvider()
+
+    mock_response = Mock()
+    mock_response.json.return_value = {"places": []}
+
+    mock_post = Mock(return_value=mock_response)
+
+    monkeypatch.setattr(provider.session, "post", mock_post)
+
+    try:
+        provider.search_places(
+            "Travel agencies",
+            country=country,
+        )
+
+        assert mock_post.call_args.kwargs["json"]["gl"] == expected
+    finally:
+        provider.close()
+
+
+def test_normalizes_search_query(monkeypatch):
+    monkeypatch.setenv("SERPER_API_KEY", "test-api-key")
+
+    provider = SerperSearchProvider()
+
+    mock_response = Mock()
+    mock_response.json.return_value = {"places": []}
+
+    mock_post = Mock(return_value=mock_response)
+
+    monkeypatch.setattr(provider.session, "post", mock_post)
+
+    try:
+        provider.search_places("  Travel agencies  ")
+
+        assert mock_post.call_args.kwargs["json"]["q"] == "Travel agencies"
+    finally:
+        provider.close()
