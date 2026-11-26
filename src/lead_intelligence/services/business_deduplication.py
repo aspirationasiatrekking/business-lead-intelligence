@@ -5,6 +5,7 @@ from src.lead_intelligence.extractors.contact_extractor import (
 )
 from src.lead_intelligence.models.business import Business
 from src.lead_intelligence.models.extraction_status import ExtractionStatus
+from src.lead_intelligence.utils.business_identity import normalize_serper_cid
 from src.lead_intelligence.utils.url_utils import normalize_website_url
 
 
@@ -125,6 +126,11 @@ class BusinessDeduplicationService:
 
         if self._has_address_conflict(first, second):
             return False
+
+        first_cid = normalize_serper_cid(first.serper_cid)
+        second_cid = normalize_serper_cid(second.serper_cid)
+        if first_cid and second_cid:
+            return first_cid == second_cid
 
         first_domain = self.normalize_domain(first.website)
         second_domain = self.normalize_domain(second.website)
@@ -298,6 +304,19 @@ class BusinessDeduplicationService:
                     incoming_value,
                 )
 
+        if existing.serper_cid is None:
+            existing.serper_cid = incoming.serper_cid
+
+        # Keep coordinate pairs together; never combine unrelated axes.
+        if (
+            existing.latitude is None
+            and existing.longitude is None
+            and incoming.latitude is not None
+            and incoming.longitude is not None
+        ):
+            existing.latitude = incoming.latitude
+            existing.longitude = incoming.longitude
+
         existing.source_urls = self._merge_unique_values(
             existing.source_urls,
             incoming.source_urls,
@@ -332,6 +351,15 @@ class BusinessDeduplicationService:
                 for existing in unique_businesses
                 if self.are_duplicates(existing, incoming)
             ]
+
+            cid = normalize_serper_cid(incoming.serper_cid)
+            exact_matches = [
+                existing
+                for existing in matches
+                if cid and normalize_serper_cid(existing.serper_cid) == cid
+            ]
+            if exact_matches:
+                matches = exact_matches
 
             if len(matches) == 1:
                 self.merge_business(

@@ -328,12 +328,14 @@ def test_stops_after_consecutive_pages_without_progress():
 
     third = make_page(1)
 
-    # Different provider identifiers, same business domains.
+    # Missing provider identifiers, same business domains; distinct CIDs now veto merges.
     for index, place in enumerate(second["places"]):
-        place["cid"] = f"20{index}"
+        place.pop("cid")
+        place["title"] += f" alias {index}"
 
     for index, place in enumerate(third["places"]):
-        place["cid"] = f"30{index}"
+        place.pop("cid")
+        place["title"] += f" alternate {index}"
 
     service, provider = make_service([first, second, third])
 

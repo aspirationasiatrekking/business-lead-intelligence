@@ -8,6 +8,10 @@ from src.lead_intelligence.models.processing_result import (
     MappingResult,
     ProcessingFailure,
 )
+from src.lead_intelligence.utils.business_identity import (
+    normalize_coordinate,
+    normalize_serper_cid,
+)
 from src.lead_intelligence.utils.country_utils import (
     find_country_code,
     get_country_name,
@@ -116,6 +120,9 @@ def map_serper_place(
         phone_numbers=([phone_number] if phone_number else []),
         website=website,
         category=place.get("category"),
+        serper_cid=normalize_serper_cid(place.get("cid")),
+        latitude=normalize_coordinate(place.get("latitude"), 90),
+        longitude=normalize_coordinate(place.get("longitude"), 180),
         **geographic_fields,
     )
 

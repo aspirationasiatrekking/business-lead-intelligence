@@ -5,6 +5,10 @@ from src.lead_intelligence.models.lead_quality import (
     LeadQuality,
     classify_lead_score,
 )
+from src.lead_intelligence.utils.business_identity import (
+    normalize_coordinate,
+    normalize_serper_cid,
+)
 
 
 @dataclass
@@ -32,6 +36,11 @@ class Business:
 
     # Lead scoring
     lead_score: int | None = None
+
+    # Provider identity and optional geographic coordinates.
+    serper_cid: str | None = None
+    latitude: float | None = None
+    longitude: float | None = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.name, str):
@@ -73,6 +82,20 @@ class Business:
                 raise ValueError("Country code must contain two ASCII letters.")
 
             self.country_code = self.country_code.upper()
+
+        if self.serper_cid is not None:
+            cid = normalize_serper_cid(self.serper_cid)
+            if cid is None:
+                raise ValueError("Invalid Serper CID.")
+            self.serper_cid = cid
+
+        for field_name, limit in (("latitude", 90), ("longitude", 180)):
+            value = getattr(self, field_name)
+            if value is not None:
+                coordinate = normalize_coordinate(value, limit)
+                if coordinate is None:
+                    raise ValueError(f"Invalid {field_name}.")
+                setattr(self, field_name, coordinate)
 
         list_fields = (
             "emails",

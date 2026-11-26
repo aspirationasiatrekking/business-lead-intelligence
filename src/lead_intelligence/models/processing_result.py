@@ -60,11 +60,16 @@ class SearchResult:
 
     @property
     def is_partial(self) -> bool:
-        return self.stop_reason in {
-            "provider_error",
-            "page_budget_reached",
-            "no_progress",
-        } or bool(self.warnings)
+        return (
+            self.stop_reason
+            in {
+                "provider_error",
+                "page_budget_reached",
+                "no_progress",
+            }
+            or bool(self.warnings)
+            or self.has_failures
+        )
 
     @property
     def credit_tracking_complete(self) -> bool:

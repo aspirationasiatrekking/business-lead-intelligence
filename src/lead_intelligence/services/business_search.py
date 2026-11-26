@@ -20,6 +20,7 @@ from src.lead_intelligence.search.serper_provider import (
 from src.lead_intelligence.services.business_deduplication import (
     BusinessDeduplicationService,
 )
+from src.lead_intelligence.utils.business_identity import normalize_serper_cid
 from src.lead_intelligence.utils.country_utils import (
     normalize_country_code,
 )
@@ -67,7 +68,7 @@ class BusinessSearchService:
     ) -> None:
         """Record provider-reported credit usage."""
 
-        credits = response.get("credits")
+        credits = response.get("credits") if isinstance(response, dict) else None
 
         if isinstance(credits, int) and not isinstance(credits, bool) and credits >= 0:
             result.reported_credits += credits
@@ -122,12 +123,12 @@ class BusinessSearchService:
 
                 continue
 
-            cid = place.get("cid")
+            cid = normalize_serper_cid(place.get("cid"))
 
-            if isinstance(cid, str) and cid.strip():
+            if cid:
                 identity = (
                     "cid",
-                    cid.strip(),
+                    cid,
                 )
 
             else:
@@ -143,6 +144,22 @@ class BusinessSearchService:
             identities.append(repr(identity))
 
         return tuple(sorted(identities))
+
+    @staticmethod
+    def _same_resolve_record(original: dict, resolved: object) -> bool:
+        if not isinstance(resolved, dict):
+            return False
+        original_cid = normalize_serper_cid(original.get("cid"))
+        resolved_cid = normalize_serper_cid(resolved.get("cid"))
+        if original_cid or resolved_cid:
+            return bool(original_cid and original_cid == resolved_cid)
+        title = original.get("title")
+        if not isinstance(title, str) or not title.strip():
+            return False
+        return all(
+            original.get(key) == resolved.get(key)
+            for key in ("title", "address", "phoneNumber", "position")
+        )
 
     def _resolve_page(
         self,
@@ -166,15 +183,17 @@ class BusinessSearchService:
             return places
 
         result.resolve_requests += 1
+        credits_recorded = False
 
         try:
-            resolved_response = self.provider.resolve_links(response)
+            resolved_response = self.provider.resolve_links(deepcopy(response))
 
             self._record_credits(
                 resolved_response,
                 result,
             )
 
+            credits_recorded = True
             resolved_places = self._validate_response(resolved_response)
 
             if len(resolved_places) != len(places):
@@ -184,9 +203,46 @@ class BusinessSearchService:
 
                 return places
 
-            return resolved_places
+            if not all(
+                self._same_resolve_record(original, resolved)
+                for original, resolved in zip(places, resolved_places, strict=True)
+            ):
+                result.warnings.append(f"Page {page}: Resolve identity mismatch")
+                return places
+
+            # Without CID, identical fallback identities cannot safely be aligned.
+            cids = [
+                cid
+                for place in places
+                if (cid := normalize_serper_cid(place.get("cid"))) is not None
+            ]
+            if len(set(cids)) != len(cids):
+                result.warnings.append(f"Page {page}: ambiguous Resolve CIDs")
+                return places
+
+            fallback_keys = [
+                tuple(
+                    repr(place.get(key))
+                    for key in ("title", "address", "phoneNumber", "position")
+                )
+                for place in places
+                if normalize_serper_cid(place.get("cid")) is None
+            ]
+            if len(set(fallback_keys)) != len(fallback_keys):
+                result.warnings.append(f"Page {page}: ambiguous Resolve identities")
+                return places
+
+            merged_places = []
+            for original, resolved in zip(places, resolved_places, strict=True):
+                merged = original.copy()
+                if is_google_redirect(original.get("website")):
+                    merged["website"] = resolved.get("website")
+                merged_places.append(merged)
+            return merged_places
 
         except self.PROVIDER_ERRORS as error:
+            if not credits_recorded:
+                result.unknown_credit_responses += 1
             result.warnings.append(
                 f"Page {page}: redirect resolution failed ({type(error).__name__})"
             )
@@ -261,6 +317,7 @@ class BusinessSearchService:
             self.MAX_SEARCH_PAGES + 1,
         ):
             result.pages_requested += 1
+            credits_recorded = False
 
             try:
                 response = self.provider.search_places(
@@ -270,9 +327,13 @@ class BusinessSearchService:
                     num=self.PAGE_SIZE,
                 )
 
+                self._record_credits(response, result)
+                credits_recorded = True
                 places = self._validate_response(response)
 
             except self.PROVIDER_ERRORS as error:
+                if not credits_recorded:
+                    result.unknown_credit_responses += 1
                 # A failed first page is not an empty search.
                 if result.pages_processed == 0:
                     raise
@@ -286,11 +347,6 @@ class BusinessSearchService:
                 break
 
             result.pages_processed += 1
-
-            self._record_credits(
-                response,
-                result,
-            )
 
             item_offset = result.total_discovered
 
