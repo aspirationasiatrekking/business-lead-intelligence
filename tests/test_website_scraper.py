@@ -1,14 +1,96 @@
+import socket
 from unittest.mock import patch
 
 import httpx
+import pytest
 import respx
 
 from src.lead_intelligence.scrapers.website_scraper import (
     MAX_RESPONSE_SIZE,
+    create_secure_client,
     fetch_website,
     fetch_website_html,
     find_contact_pages,
 )
+from src.lead_intelligence.utils.secure_transport import (
+    SecureHTTPTransport,
+    UnsafeDestinationError,
+)
+
+
+@pytest.fixture(autouse=True)
+def mock_website_dns(monkeypatch):
+    """Prevent scraper unit tests from using real DNS services."""
+
+    def fake_getaddrinfo(
+        host,
+        port,
+        *args,
+        **kwargs,
+    ):
+        return [
+            (
+                socket.AF_INET,
+                socket.SOCK_STREAM,
+                socket.IPPROTO_TCP,
+                "",
+                ("8.8.8.8", port),
+            )
+        ]
+
+    monkeypatch.setattr(
+        "src.lead_intelligence.utils.url_utils.socket.getaddrinfo",
+        fake_getaddrinfo,
+    )
+
+
+def test_fetch_website_disables_environment_proxies():
+    with patch(
+        "src.lead_intelligence.scrapers.website_scraper.httpx.Client"
+    ) as mock_client:
+        from src.lead_intelligence.scrapers.website_scraper import (
+            create_secure_client,
+        )
+
+        create_secure_client()
+
+    kwargs = mock_client.call_args.kwargs
+
+    assert kwargs["trust_env"] is False
+    assert kwargs["follow_redirects"] is False
+
+    from src.lead_intelligence.utils.secure_transport import (
+        SecureHTTPTransport,
+    )
+
+    assert isinstance(
+        kwargs["transport"],
+        SecureHTTPTransport,
+    )
+
+    kwargs["transport"].close()
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "http://127.0.0.1",
+        "http://192.168.0.1",
+        "http://169.254.169.254",
+        "http://[::1]",
+        "https://example.com:6379",
+        "ftp://example.com",
+        "https://user@example.com",
+    ],
+)
+def test_unsafe_destination_never_reaches_httpx(url):
+    with patch(
+        "src.lead_intelligence.scrapers.website_scraper.create_secure_client"
+    ) as mock_client:
+        result = fetch_website_html(url)
+
+    assert result is None
+    mock_client.assert_not_called()
 
 
 @respx.mock
@@ -314,3 +396,142 @@ def test_fetch_website_rejects_too_many_redirects(mock_safe_url):
 
     assert result is None
     assert route.call_count == 6
+
+
+def test_secure_client_can_be_created_and_closed():
+    with create_secure_client() as client:
+        assert isinstance(client, httpx.Client)
+
+        assert isinstance(
+            client._transport,
+            SecureHTTPTransport,
+        )
+
+
+def test_unsafe_connection_is_handled_without_retry():
+    url = "https://example.com"
+
+    with (
+        patch(
+            "src.lead_intelligence.scrapers.website_scraper.is_safe_url",
+            return_value=True,
+        ),
+        patch(
+            "src.lead_intelligence.scrapers.website_scraper.create_secure_client"
+        ) as mock_factory,
+    ):
+        client = mock_factory.return_value.__enter__.return_value
+
+        client.stream.side_effect = UnsafeDestinationError("Connection blocked")
+
+        result = fetch_website_html(url)
+
+    assert result is None
+    assert mock_factory.call_count == 1
+
+
+@respx.mock
+def test_fetch_website_handles_unknown_encoding():
+    url = "https://example.com"
+
+    respx.get(url).mock(
+        return_value=httpx.Response(
+            200,
+            headers={"Content-Type": ("text/html; charset=unknown-encoding")},
+            content=b"<html>Example</html>",
+        )
+    )
+
+    result = fetch_website_html(url)
+
+    assert result == "<html>Example</html>"
+
+
+@respx.mock
+def test_scraper_rejects_pdf_response():
+    url = "https://example.com"
+
+    route = respx.get(url).mock(
+        return_value=httpx.Response(
+            200,
+            headers={"Content-Type": "application/pdf"},
+            content=b"%PDF-1.7",
+        )
+    )
+
+    assert fetch_website_html(url) is None
+    assert route.call_count == 1
+
+
+@respx.mock
+def test_scraper_rejects_https_downgrade():
+    original = "https://example.com"
+    destination = "http://example.com"
+
+    respx.get(original).mock(
+        return_value=httpx.Response(
+            302,
+            headers={"Location": destination},
+        )
+    )
+
+    destination_route = respx.get(destination).mock(
+        return_value=httpx.Response(
+            200,
+            text="<html>Example</html>",
+        )
+    )
+
+    assert fetch_website_html(original) is None
+    assert not destination_route.called
+
+
+@respx.mock
+def test_scraper_allows_http_upgrade():
+    original = "http://example.com"
+    destination = "https://example.com"
+
+    respx.get(original).mock(
+        return_value=httpx.Response(
+            301,
+            headers={"Location": destination},
+        )
+    )
+
+    respx.get(destination).mock(
+        return_value=httpx.Response(
+            200,
+            headers={"Content-Type": "text/html"},
+            text="<html>Secure website</html>",
+        )
+    )
+
+    assert fetch_website_html(original) == ("<html>Secure website</html>")
+
+
+@respx.mock
+def test_scraper_rejects_redirect_without_location():
+    url = "https://example.com"
+
+    route = respx.get(url).mock(return_value=httpx.Response(302))
+
+    assert fetch_website_html(url) is None
+    assert route.call_count == 1
+
+
+@respx.mock
+def test_scraper_requests_uncompressed_content():
+    url = "https://example.com"
+
+    route = respx.get(url).mock(
+        return_value=httpx.Response(
+            200,
+            text="<html>Example</html>",
+        )
+    )
+
+    assert fetch_website_html(url) is not None
+
+    request = route.calls.last.request
+
+    assert request.headers["accept-encoding"] == "identity"
