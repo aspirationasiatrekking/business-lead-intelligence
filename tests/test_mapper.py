@@ -432,3 +432,197 @@ def test_mapper_initializes_business_without_lead_score():
 
     assert business.lead_score is None
     assert business.lead_quality is None
+
+
+def test_mapper_populates_explicit_geographic_fields():
+    place = {
+        "title": "Nepal Trekking Agency",
+        "address": "Thamel, Kathmandu, Nepal",
+        "city": "Kathmandu",
+        "district": "Kathmandu",
+        "state": "Bagmati",
+        "country": "Nepal",
+        "countryCode": "NP",
+    }
+
+    business = map_serper_place(place)
+
+    assert business.city == "Kathmandu"
+    assert business.district == "Kathmandu"
+    assert business.state == "Bagmati"
+    assert business.country == "Nepal"
+    assert business.country_code == "NP"
+
+
+def test_mapper_normalizes_explicit_geographic_fields():
+    place = {
+        "title": "Example Business",
+        "city": " Kathmandu ",
+        "state": " Bagmati ",
+        "country": " nepal ",
+        "countryCode": " np ",
+    }
+
+    business = map_serper_place(place)
+
+    assert business.city == "Kathmandu"
+    assert business.state == "Bagmati"
+    assert business.country == "Nepal"
+    assert business.country_code == "NP"
+
+
+def test_mapper_resolves_explicit_country_name():
+    business = map_serper_place(
+        {
+            "title": "Example Business",
+            "country": "United Kingdom",
+        }
+    )
+
+    assert business.country == "United Kingdom"
+
+    assert business.country_code == "GB"
+
+
+def test_mapper_resolves_explicit_country_code():
+    business = map_serper_place(
+        {
+            "title": "Example Business",
+            "countryCode": "US",
+        }
+    )
+
+    assert business.country == "United States"
+
+    assert business.country_code == "US"
+
+
+def test_mapper_handles_conflicting_country_information():
+    business = map_serper_place(
+        {
+            "title": "Example Business",
+            "country": "Nepal",
+            "countryCode": "US",
+        }
+    )
+
+    assert business.country is None
+
+    assert business.country_code is None
+
+
+def test_mapper_handles_unknown_country_code():
+    business = map_serper_place(
+        {
+            "title": "Example Business",
+            "countryCode": "ZZ",
+        }
+    )
+
+    assert business.country is None
+
+    assert business.country_code is None
+
+
+def test_mapper_uses_country_name_when_code_is_invalid():
+    business = map_serper_place(
+        {
+            "title": "Example Business",
+            "country": "Nepal",
+            "countryCode": "ZZ",
+        }
+    )
+
+    assert business.country == "Nepal"
+
+    assert business.country_code == "NP"
+
+
+def test_mapper_ignores_invalid_geographic_field_types():
+    business = map_serper_place(
+        {
+            "title": "Example Business",
+            "city": 123,
+            "district": [],
+            "state": {},
+            "country": False,
+            "countryCode": 999,
+        }
+    )
+
+    assert business.city is None
+    assert business.district is None
+    assert business.state is None
+    assert business.country is None
+    assert business.country_code is None
+
+
+def test_mapper_prefers_explicit_business_country_for_phone():
+    business = map_serper_place(
+        {
+            "title": "United States Travel Agency",
+            "countryCode": "US",
+            "phoneNumber": "2025550123",
+        },
+        region="NP",
+    )
+
+    assert business.country_code == "US"
+
+    assert business.phone_numbers == ["+12025550123"]
+
+
+def test_mapper_preserves_explicit_location_over_search_region():
+    business = map_serper_place(
+        {
+            "title": "London Travel Agency",
+            "city": "London",
+            "country": "United Kingdom",
+        },
+        region="NP",
+    )
+
+    assert business.city == "London"
+
+    assert business.country_code == "GB"
+
+
+def test_mapper_uses_search_region_when_country_is_unknown():
+    business = map_serper_place(
+        {
+            "title": "Example Business",
+            "phoneNumber": "9846041887",
+        },
+        region="NP",
+    )
+
+    assert business.phone_numbers == ["+9779846041887"]
+
+    assert business.country_code is None
+
+
+def test_batch_mapper_preserves_explicit_geography():
+    result = map_serper_places_with_report(
+        [
+            {
+                "title": "Nepal Business",
+                "city": "Kathmandu",
+                "countryCode": "NP",
+            },
+            {
+                "title": "United States Business",
+                "city": "New York",
+                "countryCode": "US",
+            },
+        ]
+    )
+
+    assert len(result.businesses) == 2
+
+    assert result.businesses[0].city == "Kathmandu"
+
+    assert result.businesses[0].country_code == "NP"
+
+    assert result.businesses[1].city == "New York"
+
+    assert result.businesses[1].country_code == "US"

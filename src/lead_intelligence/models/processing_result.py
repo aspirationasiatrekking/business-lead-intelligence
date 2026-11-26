@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 
 from src.lead_intelligence.models.business import Business
+from src.lead_intelligence.models.search_request import SearchRequest
 
 
 @dataclass
@@ -24,11 +25,14 @@ class MappingResult:
 @dataclass
 class SearchResult:
     businesses: list[Business] = field(default_factory=list)
+
     failures: list[ProcessingFailure] = field(default_factory=list)
 
     total_discovered: int = 0
     total_mapped: int = 0
     duplicate_count: int = 0
+
+    request: SearchRequest | None = None
 
     @property
     def total_returned(self) -> int:

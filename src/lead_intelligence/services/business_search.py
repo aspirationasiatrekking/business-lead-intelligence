@@ -1,6 +1,7 @@
 from src.lead_intelligence.models.business import Business
 from src.lead_intelligence.models.mapper import map_serper_places_with_report
 from src.lead_intelligence.models.processing_result import SearchResult
+from src.lead_intelligence.models.search_request import SearchRequest
 from src.lead_intelligence.search.serper_provider import (
     SerperSearchProvider,
     is_google_redirect,
@@ -14,8 +15,8 @@ from src.lead_intelligence.utils.country_utils import (
 
 
 class BusinessSearchService:
-    DEFAULT_MAX_RESULTS = 10
-    MAX_ALLOWED_RESULTS = 100
+    DEFAULT_MAX_RESULTS = SearchRequest.DEFAULT_MAX_RESULTS
+    MAX_ALLOWED_RESULTS = SearchRequest.MAX_ALLOWED_RESULTS
 
     def __init__(self, provider=None):
         self.provider = provider if provider is not None else SerperSearchProvider()
@@ -44,6 +45,25 @@ class BusinessSearchService:
         )
 
         return result.businesses
+
+    def search_request(
+        self,
+        request: SearchRequest,
+    ) -> SearchResult:
+        """Execute a validated geographic search request."""
+
+        if not isinstance(request, SearchRequest):
+            raise TypeError("Expected a SearchRequest instance")
+
+        result = self.search_with_report(
+            query=request.search_query,
+            country=request.provider_country,
+            max_results=request.max_results,
+        )
+
+        result.request = request
+
+        return result
 
     def search_with_report(
         self,

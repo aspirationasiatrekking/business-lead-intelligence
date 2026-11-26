@@ -4,6 +4,7 @@ import pytest
 
 from src.lead_intelligence.models.business import Business
 from src.lead_intelligence.models.processing_result import SearchResult
+from src.lead_intelligence.models.search_request import SearchRequest
 from src.lead_intelligence.search.serper_provider import SerperSearchProvider
 from src.lead_intelligence.services.business_search import BusinessSearchService
 
@@ -629,3 +630,175 @@ def test_search_without_country_preserves_none():
     assert result.total_returned == 1
     assert result.businesses[0].phone_numbers == ["+12025550123"]
     assert result.businesses[0].country_code is None
+
+
+def test_search_request_constructs_geographic_query():
+    provider = MagicMock()
+
+    provider.search_places.return_value = {"places": []}
+
+    service = BusinessSearchService(provider=provider)
+
+    request = SearchRequest(
+        country_code="NP",
+        city="Kathmandu",
+        query="Trekking companies",
+        max_results=50,
+    )
+
+    result = service.search_request(request)
+
+    provider.search_places.assert_called_once_with(
+        query=("Trekking companies in Kathmandu, Nepal"),
+        country="np",
+        page=1,
+        num=50,
+    )
+
+    assert result.request == request
+
+
+def test_search_request_preserves_requested_location():
+    provider = MagicMock()
+
+    provider.search_places.return_value = {
+        "places": [
+            {
+                "title": "Travel Agency",
+            }
+        ]
+    }
+
+    request = SearchRequest(
+        country_code="GB",
+        city="London",
+        query="Travel agencies",
+    )
+
+    service = BusinessSearchService(provider=provider)
+
+    result = service.search_request(request)
+
+    assert result.request.country_code == "GB"
+
+    assert result.request.city == "London"
+
+    business = result.businesses[0]
+
+    assert business.country_code is None
+
+    assert business.city is None
+
+
+def test_search_request_preserves_actual_business_location():
+    provider = MagicMock()
+
+    provider.search_places.return_value = {
+        "places": [
+            {
+                "title": "International Agency",
+                "city": "New York",
+                "countryCode": "US",
+            }
+        ]
+    }
+
+    request = SearchRequest(
+        country_code="GB",
+        city="London",
+        query="Travel agencies",
+    )
+
+    service = BusinessSearchService(provider=provider)
+
+    result = service.search_request(request)
+
+    assert result.request.country_code == "GB"
+
+    assert result.businesses[0].country_code == "US"
+
+    assert result.businesses[0].city == "New York"
+
+
+def test_search_request_propagates_phone_region():
+    provider = MagicMock()
+
+    provider.search_places.return_value = {
+        "places": [
+            {
+                "title": "Example Agency",
+                "phoneNumber": "2025550123",
+            }
+        ]
+    }
+
+    request = SearchRequest(
+        country_code="US",
+        city="Washington",
+        query="Travel agencies",
+    )
+
+    service = BusinessSearchService(provider=provider)
+
+    result = service.search_request(request)
+
+    assert result.businesses[0].phone_numbers == ["+12025550123"]
+
+
+def test_search_request_preserves_mapping_failures():
+    provider = MagicMock()
+
+    provider.search_places.return_value = {
+        "places": [
+            {"title": "Valid Business"},
+            None,
+        ]
+    }
+
+    request = SearchRequest(
+        country_code="NP",
+        city="Kathmandu",
+        query="Travel agencies",
+    )
+
+    service = BusinessSearchService(provider=provider)
+
+    result = service.search_request(request)
+
+    assert result.total_returned == 1
+
+    assert result.total_failed == 1
+
+    assert result.request == request
+
+
+@pytest.mark.parametrize(
+    "invalid_request",
+    [
+        None,
+        {},
+        "Travel agencies",
+        123,
+    ],
+)
+def test_search_request_rejects_invalid_object(invalid_request):
+    provider = MagicMock()
+
+    service = BusinessSearchService(provider=provider)
+
+    with pytest.raises(TypeError, match="SearchRequest"):
+        service.search_request(invalid_request)
+
+    provider.search_places.assert_not_called()
+
+
+def test_legacy_search_does_not_require_request_metadata():
+    provider = MagicMock()
+
+    provider.search_places.return_value = {"places": []}
+
+    service = BusinessSearchService(provider=provider)
+
+    result = service.search_with_report("Travel agencies")
+
+    assert result.request is None
