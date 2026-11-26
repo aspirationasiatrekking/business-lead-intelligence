@@ -328,7 +328,8 @@ def test_stops_after_consecutive_pages_without_progress():
 
     third = make_page(1)
 
-    # Missing provider identifiers, same business domains; distinct CIDs now veto merges.
+    # Missing CIDs allow domain matching.
+    # Different valid CIDs prevent merging.
     for index, place in enumerate(second["places"]):
         place.pop("cid")
         place["title"] += f" alias {index}"
