@@ -333,6 +333,15 @@ class BusinessDeduplicationService:
             for key, urls in getattr(incoming, field_name).items():
                 target[key] = self._merge_unique_values(target.get(key, []), urls)
 
+        for key, sources in incoming.geographic_sources.items():
+            if getattr(existing, key, None) == getattr(incoming, key, None):
+                existing.geographic_sources[key] = self._merge_unique_values(
+                    existing.geographic_sources.get(key, []), sources
+                )
+        existing.geographic_conflicts = self._merge_unique_values(
+            existing.geographic_conflicts, incoming.geographic_conflicts
+        )
+
         existing.extraction_status = self._merge_extraction_status(
             existing.extraction_status,
             incoming.extraction_status,

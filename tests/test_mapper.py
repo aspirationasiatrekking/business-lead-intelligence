@@ -333,9 +333,10 @@ def test_mapper_preserves_formatted_address():
 
     assert business.city is None
     assert business.district is None
-    assert business.state is None
-    assert business.country is None
-    assert business.country_code is None
+    assert business.state == "Bagmati"
+    assert business.country == "Nepal"
+    assert business.country_code == "NP"
+    assert business.geographic_sources["country_code"] == ["formatted_address"]
 
 
 @pytest.mark.parametrize(

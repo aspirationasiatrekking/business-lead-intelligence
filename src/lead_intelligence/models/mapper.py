@@ -8,6 +8,9 @@ from src.lead_intelligence.models.processing_result import (
     MappingResult,
     ProcessingFailure,
 )
+from src.lead_intelligence.services.geographic_enrichment import (
+    GeographicEnrichmentService,
+)
 from src.lead_intelligence.utils.business_identity import (
     normalize_coordinate,
     normalize_serper_cid,
@@ -113,24 +116,38 @@ def map_serper_place(
 
     geographic_fields = extract_geographic_fields(place)
 
-    selected_region = geographic_fields["country_code"] or region
+    # Preserve a provider contradiction before the normalized fields lose it.
+    raw_code = get_optional_text(place.get("countryCode"))
+    raw_name = find_country_code(get_optional_text(place.get("country")))
+    conflicts = []
+    if raw_code and raw_name:
+        try:
+            valid_code = validate_country_code(raw_code)
+        except ValueError:
+            valid_code = None
+        if valid_code and valid_code != raw_name:
+            conflicts.append("Provider country name and code disagree")
 
-    phone_number = normalize_phone_number(
-        place.get("phoneNumber"),
-        region=selected_region,
-    )
-
-    return Business(
+    business = Business(
         name=name,
         address=place.get("address"),
-        phone_numbers=([phone_number] if phone_number else []),
         website=website,
         category=place.get("category"),
         serper_cid=normalize_serper_cid(place.get("cid")),
         latitude=normalize_coordinate(place.get("latitude"), 90),
         longitude=normalize_coordinate(place.get("longitude"), 180),
+        geographic_sources={
+            key: ["provider"] for key, value in geographic_fields.items() if value
+        },
+        geographic_conflicts=conflicts,
         **geographic_fields,
     )
+    GeographicEnrichmentService().enrich(business)
+    phone_number = normalize_phone_number(
+        place.get("phoneNumber"), region=business.country_code or region
+    )
+    business.phone_numbers = [phone_number] if phone_number else []
+    return business
 
 
 def map_serper_places_with_report(
