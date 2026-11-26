@@ -1,0 +1,11 @@
+
+# Include all runtime dependencies
+-r requirements.txt
+
+# Automated testing
+pytest==9.2.0
+pytest-cov==7.1.0
+respx==0.23.1
+
+# Code quality
+ruff==0.17.6

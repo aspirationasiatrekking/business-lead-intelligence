@@ -77,9 +77,18 @@ Activate it on Windows PowerShell:
 
 Install dependencies:
 
-```bash
-python -m pip install -r requirements.txt
-```
+### Dependency Management
+
+- `requirements.txt`: Runtime dependencies.
+- `requirements-dev.txt`: Runtime and development dependencies.
+
+For development:
+
+    python -m pip install -r requirements-dev.txt
+
+For runtime-only installation:
+
+    python -m pip install -r requirements.txt
 
 ## Environment Configuration
 

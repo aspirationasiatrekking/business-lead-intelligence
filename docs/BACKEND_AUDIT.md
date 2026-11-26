@@ -80,10 +80,54 @@ It does not establish that these components are defective.
 
 ## 6. Confirmed Findings
 
-No independently verified findings recorded yet.
 
-Add findings after inspecting implementation and
-establishing reproducible evidence.
+### FIND-001: Mixed and Unpinned Direct Dependencies
+
+- Audit reference: AUD-002
+- Severity: Medium
+- Status: Resolved locally; remote CI verification pending
+- Affected files:
+  - requirements.txt
+  - requirements-dev.txt
+  - .github/workflows/ci.yml
+  - README.md
+- Related requirements: NFR-05, NFR-06, NFR-10
+
+#### Description
+
+Runtime and development dependencies were combined
+in a single requirements file without version pinning.
+
+Several declared packages were not required by the
+current implementation.
+
+#### Resolution
+
+- Separated runtime and development dependencies.
+- Pinned direct dependency versions.
+- Removed seven unnecessary direct dependencies.
+- Reduced direct dependencies from 20 to 13.
+- Updated CI to install development requirements.
+- Enabled pip caching in CI.
+- Added dependency compatibility checks.
+
+#### Verification
+
+Verified using an isolated Python 3.13.17 environment.
+
+- Dependency installation: Passed
+- Pip check: Passed
+- Pytest: 202 passed in 7.17 seconds
+- Ruff linting: Passed
+- Ruff formatting: 48 files correctly formatted
+- Pytest asyncio warning: No longer present
+
+#### Remaining Work
+
+- Remote CI verification
+- Dependency vulnerability scanning
+- Transitive dependency locking
+
 
 ## 7. Finding Template
 
