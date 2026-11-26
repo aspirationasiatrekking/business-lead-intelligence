@@ -147,3 +147,29 @@ The following capabilities are planned:
 ## License
 
 Internal company project. No public license has been assigned.
+
+
+## Project Documentation
+
+| Document | Description |
+|---|---|
+| [Engineering Instructions](AGENTS.md) | Development rules and engineering standards |
+| [Project Context](docs/PROJECT_CONTEXT.md) | Business objectives and project scope |
+| [Requirements](docs/REQUIREMENTS.md) | Functional and non-functional requirements |
+| [Architecture](docs/ARCHITECTURE.md) | Current and planned system architecture |
+| [Master Roadmap](docs/ROADMAP.md) | Development checklist through production |
+| [Project Status](docs/PROJECT_STATUS.md) | Latest development checkpoint |
+| [Architectural Decisions](docs/DECISIONS.md) | Technical decisions and rationale |
+| [Backend Audit](docs/BACKEND_AUDIT.md) | Audit findings and technical debt |
+| [Development Log](docs/DEVELOPMENT_LOG.md) | Development history and verification |
+
+### Continuing Development
+
+Before starting a new development session:
+
+1. Read AGENTS.md.
+2. Read docs/PROJECT_STATUS.md.
+3. Read docs/ROADMAP.md.
+4. Review recent development log entries.
+5. Inspect the current repository state.
+6. Continue with the next unfinished task.
