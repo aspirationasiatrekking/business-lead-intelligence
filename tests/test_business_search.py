@@ -100,25 +100,38 @@ def test_search_custom_max_results():
     assert len(businesses) == 5
 
     service.provider.search_places.assert_called_once_with(
-        query="Adventure agencies", country=None, num=5, page=1
+        query="Adventure agencies",
+        country=None,
+        num=10,
+        page=1,
     )
 
 
 def test_search_maximum_allowed_results():
     service = create_mock_service()
 
-    service.provider.search_places.return_value = {"places": generate_places(110)}
+    service.provider.search_places.side_effect = [
+        {
+            "places": [{"title": (f"Business {page}_{index}")} for index in range(10)],
+            "credits": 1,
+        }
+        for page in range(1, 11)
+    ]
 
-    businesses = service.search(
+    result = service.search_with_report(
         "Adventure agencies",
         max_results=100,
     )
 
-    assert len(businesses) == 100
+    assert len(result.businesses) == 100
 
-    service.provider.search_places.assert_called_once_with(
-        query="Adventure agencies", country=None, num=100, page=1
-    )
+    assert result.pages_requested == 10
+
+    assert result.reported_credits == 10
+
+    assert service.provider.search_places.call_count == 10
+
+    assert result.stop_reason == "result_limit_reached"
 
 
 @pytest.mark.parametrize(
@@ -208,18 +221,23 @@ def test_search_deduplicates_businesses():
 
 def test_search_with_report_success():
     provider = MagicMock()
-    provider.search_places.return_value = {
-        "places": [
-            {"title": "First Business"},
-            {"title": "Second Business"},
-        ]
-    }
+
+    provider.search_places.side_effect = [
+        {
+            "places": [
+                {"title": "First Business"},
+                {"title": "Second Business"},
+            ]
+        },
+        {"places": []},
+    ]
 
     service = BusinessSearchService(provider=provider)
 
     result = service.search_with_report("Travel agencies")
 
     assert isinstance(result, SearchResult)
+
     assert result.total_discovered == 2
     assert result.total_mapped == 2
     assert result.total_returned == 2
@@ -229,6 +247,9 @@ def test_search_with_report_success():
 
     assert result.businesses[0].name == "First Business"
     assert result.businesses[1].name == "Second Business"
+
+    assert result.pages_requested == 2
+    assert result.stop_reason == "empty_page"
 
     provider.resolve_links.assert_not_called()
 
@@ -253,14 +274,18 @@ def test_search_with_report_empty_results():
 
 def test_search_with_report_handles_invalid_records():
     provider = MagicMock()
-    provider.search_places.return_value = {
-        "places": [
-            {"title": "First Business"},
-            None,
-            "Invalid record",
-            {"title": "Second Business"},
-        ]
-    }
+
+    provider.search_places.side_effect = [
+        {
+            "places": [
+                {"title": "First Business"},
+                None,
+                "Invalid record",
+                {"title": "Second Business"},
+            ]
+        },
+        {"places": []},
+    ]
 
     service = BusinessSearchService(provider=provider)
 
@@ -279,19 +304,26 @@ def test_search_with_report_handles_invalid_records():
     assert result.businesses[0].name == "First Business"
     assert result.businesses[1].name == "Second Business"
 
+    assert result.pages_requested == 2
+    assert result.stop_reason == "empty_page"
+
 
 def test_search_with_report_handles_model_validation_failure():
     provider = MagicMock()
-    provider.search_places.return_value = {
-        "places": [
-            {"title": "First Business"},
-            {
-                "title": "Broken Business",
-                "address": 123,
-            },
-            {"title": "Second Business"},
-        ]
-    }
+
+    provider.search_places.side_effect = [
+        {
+            "places": [
+                {"title": "First Business"},
+                {
+                    "title": "Broken Business",
+                    "address": 123,
+                },
+                {"title": "Second Business"},
+            ]
+        },
+        {"places": []},
+    ]
 
     service = BusinessSearchService(provider=provider)
 
@@ -310,25 +342,32 @@ def test_search_with_report_handles_model_validation_failure():
     assert failure.stage == "mapping"
     assert "TypeError" in failure.message
 
+    assert result.pages_requested == 2
+    assert result.stop_reason == "empty_page"
+
 
 def test_search_with_report_counts_duplicates():
     provider = MagicMock()
-    provider.search_places.return_value = {
-        "places": [
-            {
-                "title": "Example Business",
-                "website": "https://example.com",
-            },
-            {
-                "title": "Example Business",
-                "website": "https://example.com",
-            },
-            {
-                "title": "Another Business",
-                "website": "https://another.com",
-            },
-        ]
-    }
+
+    provider.search_places.side_effect = [
+        {
+            "places": [
+                {
+                    "title": "Example Business",
+                    "website": "https://example.com",
+                },
+                {
+                    "title": "Example Business",
+                    "website": "https://example.com",
+                },
+                {
+                    "title": "Another Business",
+                    "website": "https://another.com",
+                },
+            ]
+        },
+        {"places": []},
+    ]
 
     service = BusinessSearchService(provider=provider)
 
@@ -339,6 +378,9 @@ def test_search_with_report_counts_duplicates():
     assert result.duplicate_count == 1
     assert result.total_returned == 2
     assert result.total_failed == 0
+
+    assert result.pages_requested == 2
+    assert result.stop_reason == "empty_page"
 
 
 def test_search_with_report_respects_result_limit():
@@ -402,14 +444,18 @@ def test_search_with_report_resolves_google_redirects():
 
 def test_search_with_report_propagates_selected_region():
     provider = MagicMock()
-    provider.search_places.return_value = {
-        "places": [
-            {
-                "title": "Example Business",
-                "phoneNumber": "2025550123",
-            }
-        ]
-    }
+
+    provider.search_places.side_effect = [
+        {
+            "places": [
+                {
+                    "title": "Example Business",
+                    "phoneNumber": "2025550123",
+                }
+            ]
+        },
+        {"places": []},
+    ]
 
     service = BusinessSearchService(provider=provider)
 
@@ -419,17 +465,25 @@ def test_search_with_report_propagates_selected_region():
         max_results=10,
     )
 
-    provider.search_places.assert_called_once_with(
+    provider.search_places.assert_any_call(
         query="Travel agencies",
         country="us",
         page=1,
         num=10,
     )
 
-    assert result.businesses[0].phone_numbers == ["+12025550123"]
+    provider.search_places.assert_any_call(
+        query="Travel agencies",
+        country="us",
+        page=2,
+        num=10,
+    )
 
-    # Search region does not establish business location.
+    assert provider.search_places.call_count == 2
+    assert result.total_returned == 1
+    assert result.businesses[0].phone_numbers == ["+12025550123"]
     assert result.businesses[0].country_code is None
+    assert result.stop_reason == "empty_page"
 
 
 def test_search_with_report_propagates_provider_failure():
@@ -477,13 +531,18 @@ def test_search_preserves_failures_in_mixed_redirect_batch(
             None,
             {
                 "title": "Second Business",
-                "website": "https://google.com/goto?url=example",
+                "website": ("https://google.com/goto?url=example"),
             },
             "Invalid record",
         ]
     }
 
-    mock_post = Mock(return_value=raw_results)
+    mock_post = Mock(
+        side_effect=[
+            raw_results,
+            {"places": []},
+        ]
+    )
 
     monkeypatch.setattr(provider, "_post", mock_post)
 
@@ -507,7 +566,7 @@ def test_search_preserves_failures_in_mixed_redirect_batch(
     assert result.failures[0].item_index == 1
     assert result.failures[1].item_index == 3
 
-    mock_post.assert_called_once_with(
+    mock_post.assert_any_call(
         "places",
         {
             "q": "Travel agencies",
@@ -518,6 +577,23 @@ def test_search_preserves_failures_in_mixed_redirect_batch(
         },
     )
 
+    mock_post.assert_any_call(
+        "places",
+        {
+            "q": "Travel agencies",
+            "hl": "en",
+            "page": 2,
+            "num": 10,
+            "gl": "np",
+        },
+    )
+
+    assert mock_post.call_count == 2
+
+    assert result.resolve_requests == 0
+    assert result.warnings
+    assert result.stop_reason == "empty_page"
+
 
 @pytest.mark.parametrize(
     "country",
@@ -526,14 +602,17 @@ def test_search_preserves_failures_in_mixed_redirect_batch(
 def test_search_normalizes_country_and_phone_region(country):
     provider = MagicMock()
 
-    provider.search_places.return_value = {
-        "places": [
-            {
-                "title": "Nepal Business",
-                "phoneNumber": "9846041887",
-            }
-        ]
-    }
+    provider.search_places.side_effect = [
+        {
+            "places": [
+                {
+                    "title": "Nepal Business",
+                    "phoneNumber": "9846041887",
+                }
+            ]
+        },
+        {"places": []},
+    ]
 
     service = BusinessSearchService(provider=provider)
 
@@ -542,17 +621,28 @@ def test_search_normalizes_country_and_phone_region(country):
         country=country,
     )
 
-    provider.search_places.assert_called_once_with(
+    provider.search_places.assert_any_call(
         query="Trekking companies",
         country="np",
         page=1,
         num=10,
     )
 
+    provider.search_places.assert_any_call(
+        query="Trekking companies",
+        country="np",
+        page=2,
+        num=10,
+    )
+
+    assert provider.search_places.call_count == 2
+
     assert result.total_returned == 1
+
     assert result.businesses[0].phone_numbers == ["+9779846041887"]
 
     assert result.businesses[0].country_code is None
+    assert result.stop_reason == "empty_page"
 
 
 @pytest.mark.parametrize(
@@ -605,14 +695,17 @@ def test_search_rejects_invalid_country_type_before_provider(
 def test_search_without_country_preserves_none():
     provider = MagicMock()
 
-    provider.search_places.return_value = {
-        "places": [
-            {
-                "title": "Example Business",
-                "phoneNumber": "+12025550123",
-            }
-        ]
-    }
+    provider.search_places.side_effect = [
+        {
+            "places": [
+                {
+                    "title": "Example Business",
+                    "phoneNumber": "+12025550123",
+                }
+            ]
+        },
+        {"places": []},
+    ]
 
     service = BusinessSearchService(provider=provider)
 
@@ -620,16 +713,28 @@ def test_search_without_country_preserves_none():
         query="Travel agencies",
     )
 
-    provider.search_places.assert_called_once_with(
+    provider.search_places.assert_any_call(
         query="Travel agencies",
         country=None,
         page=1,
         num=10,
     )
 
+    provider.search_places.assert_any_call(
+        query="Travel agencies",
+        country=None,
+        page=2,
+        num=10,
+    )
+
+    assert provider.search_places.call_count == 2
+
     assert result.total_returned == 1
+
     assert result.businesses[0].phone_numbers == ["+12025550123"]
+
     assert result.businesses[0].country_code is None
+    assert result.stop_reason == "empty_page"
 
 
 def test_search_request_constructs_geographic_query():
@@ -652,7 +757,7 @@ def test_search_request_constructs_geographic_query():
         query=("Trekking companies in Kathmandu, Nepal"),
         country="np",
         page=1,
-        num=50,
+        num=10,
     )
 
     assert result.request == request

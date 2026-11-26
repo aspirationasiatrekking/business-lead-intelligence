@@ -73,6 +73,27 @@ def main() -> None:
 
     print("\nSearch report")
 
+    print(f"Pages requested: {search_result.pages_requested}")
+
+    print(f"Pages processed: {search_result.pages_processed}")
+
+    print(f"Resolve requests: {search_result.resolve_requests}")
+
+    print(f"Reported API credits: {search_result.reported_credits}")
+
+    print(f"Responses with unknown credits: {search_result.unknown_credit_responses}")
+
+    print(f"Search stop reason: {search_result.stop_reason}")
+
+    if search_result.is_partial:
+        print("Warning: Search results may be incomplete.")
+
+    if search_result.warnings:
+        print("\nSearch warnings:")
+
+        for warning in search_result.warnings:
+            print(f"- {warning}")
+
     print(f"Discovered: {search_result.total_discovered}")
 
     print(f"Mapped: {search_result.total_mapped}")

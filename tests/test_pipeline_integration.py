@@ -64,7 +64,12 @@ def test_complete_business_pipeline(
         ]
     }
 
-    mock_post = Mock(return_value=raw_results)
+    mock_post = Mock(
+        side_effect=[
+            raw_results,
+            {"places": []},
+        ]
+    )
 
     monkeypatch.setattr(
         provider,
@@ -204,7 +209,7 @@ def test_complete_business_pipeline(
         "https://example.com; https://example.com/contact"
     )
 
-    mock_post.assert_called_once()
+    assert mock_post.call_count == 2
 
 
 def test_pipeline_handles_duplicates_and_mapping_failures(
@@ -242,7 +247,12 @@ def test_pipeline_handles_duplicates_and_mapping_failures(
     monkeypatch.setattr(
         provider,
         "_post",
-        Mock(return_value=raw_results),
+        Mock(
+            side_effect=[
+                raw_results,
+                {"places": []},
+            ]
+        ),
     )
 
     with BusinessSearchService(provider=provider) as search_service:
@@ -423,6 +433,7 @@ def test_pipeline_resolves_google_redirects(
         side_effect=[
             raw_results,
             resolved_results,
+            {"places": []},
         ]
     )
 
@@ -438,7 +449,7 @@ def test_pipeline_resolves_google_redirects(
             country="np",
         )
 
-    assert mock_post.call_count == 2
+    assert mock_post.call_count == 3
     assert mock_post.call_args_list[0].args[0] == "places"
     assert mock_post.call_args_list[1].args[0] == "resolve"
 

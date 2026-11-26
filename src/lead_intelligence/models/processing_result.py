@@ -34,6 +34,18 @@ class SearchResult:
 
     request: SearchRequest | None = None
 
+    pages_requested: int = 0
+    pages_processed: int = 0
+
+    resolve_requests: int = 0
+
+    reported_credits: int = 0
+    unknown_credit_responses: int = 0
+
+    warnings: list[str] = field(default_factory=list)
+
+    stop_reason: str | None = None
+
     @property
     def total_returned(self) -> int:
         return len(self.businesses)
@@ -45,3 +57,15 @@ class SearchResult:
     @property
     def has_failures(self) -> bool:
         return bool(self.failures)
+
+    @property
+    def is_partial(self) -> bool:
+        return self.stop_reason in {
+            "provider_error",
+            "page_budget_reached",
+            "no_progress",
+        } or bool(self.warnings)
+
+    @property
+    def credit_tracking_complete(self) -> bool:
+        return self.unknown_credit_responses == 0
