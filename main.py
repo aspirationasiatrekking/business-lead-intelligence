@@ -7,18 +7,11 @@ from src.lead_intelligence.exporters.csv_exporter import (
 from src.lead_intelligence.exporters.excel_exporter import (
     export_businesses_to_excel,
 )
+from src.lead_intelligence.models.pipeline_progress import PipelineProgress
 from src.lead_intelligence.models.search_request import (
     SearchRequest,
 )
-from src.lead_intelligence.services.business_search import (
-    BusinessSearchService,
-)
-from src.lead_intelligence.services.contact_discovery import (
-    ContactDiscoveryService,
-)
-from src.lead_intelligence.services.lead_scoring import (
-    LeadScoringService,
-)
+from src.lead_intelligence.services.lead_pipeline import LeadPipelineService
 
 
 def read_search_request() -> SearchRequest:
@@ -67,10 +60,15 @@ def main() -> None:
 
     print(f"Maximum results: {request.max_results}")
 
-    with BusinessSearchService() as search_service:
-        search_result = search_service.search_request(request)
+    def report_progress(event: PipelineProgress) -> None:
+        if event.stage == "searching":
+            print("Searching for businesses...")
+        elif event.stage == "processing":
+            print(f"Processed {event.processed}/{event.total} businesses")
 
-    businesses = search_result.businesses
+    result = LeadPipelineService().run(request, on_progress=report_progress)
+    search_result = result.search_result
+    businesses = result.businesses
 
     print("\nSearch report")
 
@@ -105,47 +103,23 @@ def main() -> None:
 
     print(f"Businesses returned: {search_result.total_returned}")
 
-    contact_service = ContactDiscoveryService()
+    print(f"Pipeline duration: {result.duration_seconds:.2f}s")
+    print(f"Businesses processed: {result.total_processed}")
+    print(f"Businesses scored: {result.total_scored}")
+    print(f"Extraction outcomes: {result.extraction_counts}")
+    if result.is_partial:
+        print("Warning: Pipeline completed with incomplete results.")
+    for failure in result.failures:
+        print(f"Processing failure: {failure.stage} ({failure.message})")
+    for warning in result.warnings:
+        print(f"Warning: {warning}")
 
-    scoring_service = LeadScoringService()
-
-    for index, business in enumerate(
-        businesses,
-        start=1,
-    ):
-        print(f"\nProcessing {index}/{len(businesses)}: {business.name}")
-
-        region = business.country_code or request.phone_region
-
-        contact_service.discover(
-            business,
-            region=region,
-        )
-
-        scoring_service.evaluate_business(
-            business,
-            region=region,
-        )
-
-        print(f"Address: {business.address}")
-
-        print(f"Business city: {business.city or 'Unknown'}")
-
-        print(f"Business country: {business.country or 'Unknown'}")
-
-        print(f"Emails: {business.emails}")
-
-        print(f"Phone numbers: {business.phone_numbers}")
-
-        print(f"Extraction status: {business.extraction_status}")
-
-        print(f"Source URLs: {business.source_urls}")
-
-        print(f"Contact pages: {business.contact_page_urls}")
-
-        print(f"Lead Score: {business.lead_score}/100")
-
-        print(f"Lead Quality: {business.lead_quality}")
+    # Do not silently export an unscored record as a successful evaluation.
+    businesses = [
+        business for business in businesses if business.lead_score is not None
+    ]
+    omitted = result.total_processed - len(businesses)
+    print(f"Unscored businesses omitted from exports: {omitted}")
 
     output_dir = Path("output")
 
