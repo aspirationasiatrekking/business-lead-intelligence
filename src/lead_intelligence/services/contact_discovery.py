@@ -9,6 +9,7 @@ from src.lead_intelligence.scrapers.website_scraper import (
     find_contact_pages,
     normalize_page_url,
 )
+from src.lead_intelligence.settings import ApplicationSettings
 from src.lead_intelligence.utils.country_utils import normalize_country_code
 from src.lead_intelligence.utils.website_policy import (
     is_candidate_business_website,
@@ -27,6 +28,10 @@ def fetch_contact_page(url: str):
 
 class ContactDiscoveryService:
     MAX_CONTACT_PAGES = 5
+
+    def __init__(self, settings: ApplicationSettings | None = None):
+        if settings is not None:
+            self.MAX_CONTACT_PAGES = settings.max_contact_pages
 
     @staticmethod
     def _extract_contacts(

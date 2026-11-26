@@ -21,7 +21,7 @@ def test_search_places_sends_correct_request(monkeypatch):
 
     provider = SerperSearchProvider()
 
-    mock_response = Mock()
+    mock_response = Mock(status_code=200)
     mock_response.json.return_value = {"places": [{"title": "Nepal Hiking Team"}]}
 
     mock_post = Mock(return_value=mock_response)
@@ -49,6 +49,7 @@ def test_search_places_sends_correct_request(monkeypatch):
             "Content-Type": "application/json",
         },
         timeout=30,
+        allow_redirects=False,
     )
 
     mock_response.raise_for_status.assert_called_once()
@@ -59,7 +60,7 @@ def test_search_places_without_country(monkeypatch):
 
     provider = SerperSearchProvider()
 
-    mock_response = Mock()
+    mock_response = Mock(status_code=200)
     mock_response.json.return_value = {"places": []}
 
     mock_post = Mock(return_value=mock_response)
@@ -83,7 +84,7 @@ def test_search_places_raises_http_error(monkeypatch):
 
     provider = SerperSearchProvider()
 
-    mock_response = Mock()
+    mock_response = Mock(status_code=200)
     mock_response.raise_for_status.side_effect = Exception("API request failed")
 
     monkeypatch.setattr(provider.session, "post", Mock(return_value=mock_response))
@@ -191,7 +192,7 @@ def test_search_places_with_custom_num(monkeypatch):
     monkeypatch.setenv("SERPER_API_KEY", "test-api-key")
 
     provider = SerperSearchProvider()
-    mock_response = Mock()
+    mock_response = Mock(status_code=200)
     mock_response.json.return_value = {"places": []}
 
     mock_post = Mock(return_value=mock_response)
@@ -265,7 +266,7 @@ def test_search_places_rejects_invalid_response_structure(
 
     provider = SerperSearchProvider()
 
-    mock_response = Mock()
+    mock_response = Mock(status_code=200)
     mock_response.json.return_value = response_data
 
     monkeypatch.setattr(
@@ -285,7 +286,7 @@ def test_search_places_rejects_invalid_json(monkeypatch):
 
     provider = SerperSearchProvider()
 
-    mock_response = Mock()
+    mock_response = Mock(status_code=200)
     mock_response.json.side_effect = requests.exceptions.JSONDecodeError(
         "Invalid JSON",
         "invalid",
@@ -405,7 +406,7 @@ def test_normalizes_country_code(
 
     provider = SerperSearchProvider()
 
-    mock_response = Mock()
+    mock_response = Mock(status_code=200)
     mock_response.json.return_value = {"places": []}
 
     mock_post = Mock(return_value=mock_response)
@@ -428,7 +429,7 @@ def test_normalizes_search_query(monkeypatch):
 
     provider = SerperSearchProvider()
 
-    mock_response = Mock()
+    mock_response = Mock(status_code=200)
     mock_response.json.return_value = {"places": []}
 
     mock_post = Mock(return_value=mock_response)

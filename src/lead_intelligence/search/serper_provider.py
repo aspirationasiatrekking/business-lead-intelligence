@@ -1,11 +1,9 @@
 import math
-import os
 from datetime import UTC, datetime
 from email.utils import parsedate_to_datetime
 from urllib.parse import urlparse
 
 import requests
-from dotenv import load_dotenv
 from requests_ratelimiter import LimiterSession
 from tenacity import (
     retry,
@@ -14,12 +12,10 @@ from tenacity import (
     wait_exponential,
 )
 
+from src.lead_intelligence.settings import ApplicationSettings
 from src.lead_intelligence.utils.country_utils import (
     normalize_country_code,
 )
-
-load_dotenv()
-
 
 RETRYABLE_STATUS_CODES = {429, 500, 502, 503, 504}
 MAX_RETRY_AFTER_SECONDS = 30.0
@@ -121,17 +117,19 @@ class SerperSearchProvider:
 
     REQUESTS_PER_SECOND = 1
 
-    def __init__(self):
-        self.api_key = os.getenv("SERPER_API_KEY")
+    def __init__(self, settings: ApplicationSettings | None = None):
+        self.settings = settings if settings is not None else ApplicationSettings.load()
+        self.api_key = self.settings.serper_api_key
 
         if not self.api_key:
-            raise ValueError("SERPER_API_KEY is missing from .env")
+            raise ValueError("SERPER_API_KEY is missing from configuration")
 
         self.session = LimiterSession(
-            per_second=self.REQUESTS_PER_SECOND,
+            per_second=self.settings.serper_rps,
             burst=1,
             max_delay=30,
         )
+        self.session.trust_env = False
 
     @staticmethod
     def _validate_places_response(data: dict) -> dict:
@@ -168,8 +166,13 @@ class SerperSearchProvider:
             f"{self.BASE_URL}/{endpoint}",
             json=payload,
             headers=headers,
-            timeout=30,
+            timeout=self.settings.serper_timeout,
+            allow_redirects=False,
         )
+
+        if 300 <= response.status_code < 400:
+            response.close()
+            raise SerperResponseError("Unexpected Serper redirect response")
 
         response.raise_for_status()
 

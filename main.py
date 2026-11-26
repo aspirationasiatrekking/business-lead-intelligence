@@ -1,3 +1,4 @@
+import logging
 from pathlib import Path
 from tempfile import mkdtemp
 
@@ -11,7 +12,10 @@ from src.lead_intelligence.models.pipeline_progress import PipelineProgress
 from src.lead_intelligence.models.search_request import (
     SearchRequest,
 )
+from src.lead_intelligence.services.business_search import BusinessSearchService
+from src.lead_intelligence.services.contact_discovery import ContactDiscoveryService
 from src.lead_intelligence.services.lead_pipeline import LeadPipelineService
+from src.lead_intelligence.settings import ApplicationSettings
 
 
 def read_search_request() -> SearchRequest:
@@ -47,6 +51,10 @@ def read_search_request() -> SearchRequest:
 
 
 def main() -> None:
+    settings = ApplicationSettings.load(Path(__file__).resolve().parent / ".env")
+    logging.basicConfig(
+        level=settings.log_level, format="%(levelname)s %(name)s %(message)s"
+    )
     request = read_search_request()
 
     print("\nSearch configuration")
@@ -66,7 +74,11 @@ def main() -> None:
         elif event.stage == "processing":
             print(f"Processed {event.processed}/{event.total} businesses")
 
-    result = LeadPipelineService().run(request, on_progress=report_progress)
+    pipeline = LeadPipelineService(
+        search_factory=lambda: BusinessSearchService(settings=settings),
+        contact_service=ContactDiscoveryService(settings),
+    )
+    result = pipeline.run(request, on_progress=report_progress)
     search_result = result.search_result
     businesses = result.businesses
 
@@ -121,7 +133,7 @@ def main() -> None:
     omitted = result.total_processed - len(businesses)
     print(f"Unscored businesses omitted from exports: {omitted}")
 
-    output_dir = Path("output")
+    output_dir = settings.output_dir
 
     output_dir.mkdir(
         parents=True,

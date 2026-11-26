@@ -20,6 +20,7 @@ from src.lead_intelligence.search.serper_provider import (
 from src.lead_intelligence.services.business_deduplication import (
     BusinessDeduplicationService,
 )
+from src.lead_intelligence.settings import ApplicationSettings
 from src.lead_intelligence.utils.business_identity import normalize_serper_cid
 from src.lead_intelligence.utils.country_utils import (
     normalize_country_code,
@@ -42,8 +43,13 @@ class BusinessSearchService:
         SerperResponseError,
     )
 
-    def __init__(self, provider=None):
-        self.provider = provider if provider is not None else SerperSearchProvider()
+    def __init__(self, provider=None, *, settings: ApplicationSettings | None = None):
+        if settings is not None:
+            self.MAX_SEARCH_PAGES = settings.max_search_pages
+            self.MAX_NO_PROGRESS_PAGES = settings.max_no_progress_pages
+        self.provider = (
+            provider if provider is not None else SerperSearchProvider(settings)
+        )
 
         self.deduplication_service = BusinessDeduplicationService()
 

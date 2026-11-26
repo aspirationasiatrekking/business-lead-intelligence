@@ -1,3 +1,4 @@
+import logging
 import time
 import unicodedata
 from dataclasses import dataclass
@@ -379,7 +380,9 @@ def fetch_website_page(url: str, *, business_only: bool = False) -> FetchedPage 
         ValueError,
         ResponseTooLargeError,
     ) as error:
-        print(f"Error fetching website {url}: {error}")
+        logging.getLogger(__name__).warning(
+            "Website fetch failed (%s)", type(error).__name__
+        )
 
         return None
 

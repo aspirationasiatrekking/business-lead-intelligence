@@ -30,7 +30,7 @@ def test_resolve_links_sends_correct_request(monkeypatch):
         ]
     }
 
-    mock_response = Mock()
+    mock_response = Mock(status_code=200)
     mock_response.json.return_value = resolved_results
 
     mock_post = Mock(return_value=mock_response)
@@ -49,6 +49,7 @@ def test_resolve_links_sends_correct_request(monkeypatch):
             "Content-Type": "application/json",
         },
         timeout=30,
+        allow_redirects=False,
     )
 
     mock_response.raise_for_status.assert_called_once()
@@ -59,7 +60,7 @@ def test_resolve_links_raises_http_error(monkeypatch):
 
     provider = SerperSearchProvider()
 
-    mock_response = Mock()
+    mock_response = Mock(status_code=200)
     mock_response.raise_for_status.side_effect = Exception("Resolve request failed")
 
     mock_post = Mock(return_value=mock_response)
@@ -97,7 +98,7 @@ def test_resolve_links_rejects_invalid_response_structure(
 
     provider = SerperSearchProvider()
 
-    mock_response = Mock()
+    mock_response = Mock(status_code=200)
     mock_response.json.return_value = response_data
 
     monkeypatch.setattr(
