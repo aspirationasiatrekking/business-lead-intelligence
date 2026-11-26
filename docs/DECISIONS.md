@@ -63,7 +63,7 @@ Consequences:
 
 ## ADR-004: HTTP-Based Website Scraping
 
-Status: Accepted
+Status: Superseded by ADR-018
 
 Decision:
 Use Requests and BeautifulSoup for initial website
@@ -299,6 +299,24 @@ Consequences:
 - Outdated documentation must be corrected.
 
 ---
+
+## ADR-018: Secure HTTPX Website Transport
+
+Status: Implemented and locally verified
+
+Requests remains the Serper client; HTTPX/httpcore with connection-time IP validation handles website retrieval. Reject unsafe destinations, HTTPS downgrades, unsupported content and oversized responses. Production network isolation remains required.
+
+## ADR-019: Conservative Website Acquisition
+
+Status: Implemented and locally verified; live recovery effectiveness unproven
+
+Preserve accepted Places/Resolve URLs. Optional organic fallback is disabled by default, bounded by logical searches, and requires homepage name and matching phone evidence with one distinct matching website. Track acquisition outcomes and reported credits; do not interpret them as exact billing or ownership proof.
+
+## ADR-020: Persistent Storage Direction
+
+Status: Proposed for Phase 4 design review
+
+Use PostgreSQL as the planned relational engine; evaluate SQLAlchemy and Alembic before implementation. Preserve provider identity, search associations, historical contacts, website evidence and freshness. Do not overwrite known values with missing observations. Keep search and actual geography separate.
 
 ## Pending Technical Decisions
 

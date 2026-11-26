@@ -45,6 +45,23 @@ class SearchResult:
     warnings: list[str] = field(default_factory=list)
 
     stop_reason: str | None = None
+    website_search_requests: int = 0
+    website_fallback_outcomes: dict[str, int] = field(default_factory=dict)
+    website_candidate_outcomes: dict[str, int] = field(default_factory=dict)
+
+    @property
+    def website_source_counts(self) -> dict[str, int]:
+        """Final returned records, not raw provider rows."""
+        counts = dict.fromkeys(("places", "resolve", "organic_name_phone", "other"), 0)
+        counts["no_website"] = 0
+        for business in self.businesses:
+            if not business.website:
+                counts["no_website"] += 1
+            else:
+                source = business.website_source
+                key = source if source in counts and source != "no_website" else "other"
+                counts[key] += 1
+        return counts
 
     @property
     def total_returned(self) -> int:

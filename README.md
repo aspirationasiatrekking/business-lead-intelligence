@@ -16,7 +16,10 @@ A Python-based business lead intelligence platform designed to discover business
 
 ## Current Features
 
-- Serper Places API integration.
+- Serper Places and Resolve integration, bounded pagination and credit reporting.
+- Optional budget-controlled organic website discovery with conservative name/phone verification and outcome counters.
+- Reusable pipeline, international request validation, CID-aware deduplication and offline geographic enrichment.
+- Contact source provenance, extraction status and atomic per-file exports.
 - Business search with configurable result limits.
 - HTTP request retry and rate limiting.
 - Website scraping with redirect and response-size controls.
@@ -41,7 +44,6 @@ A Python-based business lead intelligence platform designed to discover business
 | BeautifulSoup | HTML parsing |
 | Phonenumbers | Phone validation and normalization |
 | OpenPyXL | Excel export |
-| XlsxWriter | Installed dependency; usage to be reviewed |
 | FastAPI | Planned API backend |
 | PostgreSQL | Planned database |
 | React + TypeScript | Planned frontend |
@@ -50,7 +52,7 @@ A Python-based business lead intelligence platform designed to discover business
 
 ## Prerequisites
 
-- Python 3.13 or compatible version.
+- Python 3.13 (verified locally on 3.13.17).
 - Git.
 - A Serper API key.
 
@@ -92,7 +94,7 @@ For runtime-only installation:
 
 ## Environment Configuration
 
-Create a `.env` file in the project root.
+Copy `.env.example` to `.env` in the project root (do not overwrite an existing configuration).
 
 Add your Serper API key:
 
@@ -100,7 +102,7 @@ Add your Serper API key:
 SERPER_API_KEY=your_serper_api_key
 ```
 
-Never commit your `.env` file or expose API keys publicly.
+Never commit your `.env` file or expose API keys publicly. See `.env.example` for optional bounds; `MAX_WEBSITE_SEARCHES=0` disables paid organic fallback. Environment variables override the file.
 
 ## Running the Application
 
@@ -112,10 +114,12 @@ python main.py
 
 ## Running Tests
 
+The CLI prompts for ISO country code, city, query and 1–100 results. Outputs are written to a unique run directory under `output/` by default.
+
 Run the complete test suite:
 
 ```bash
-python -m pytest
+python -m pytest --cov=src/lead_intelligence --cov-report=term-missing
 ```
 
 Run Ruff lint checks:
@@ -132,7 +136,17 @@ python -m ruff format --check .
 
 ## Project Status
 
-The current implementation is a functional Python-based lead discovery and processing prototype.
+The current implementation is a locally verified, reusable Python discovery core. Final checkpoint CI is pending; it is not a production application.
+
+Local verification on 26 November 2026 (Python 3.13.17, Windows):
+
+- 1,173 tests passed in 19.79 seconds; 96% statement coverage (2,012 statements, 80 missed). Coverage excludes main.py and is not branch coverage.
+- pip check and Ruff lint passed; 86 Python files formatted; staged and unstaged diff checks clean.
+- Both declared-dependency and installed-environment pip-audit scans reported no known vulnerabilities earlier in the session; no dependencies changed in the final acquisition batch.
+- Gitleaks: 38 commits / approximately 706,801 bytes of history and 14,197 bytes of staged changes scanned; no leaks, both exit codes 0. .env ignored, untracked and absent from available history.
+- Latest acquisition changes: 11 staged files, 337 insertions, 2 deletions, based on 7bc9e25. Final commit and remote CI not yet verified.
+
+Known limitations and next steps: see [Project Status](docs/PROJECT_STATUS.md) and [Backend Audit](docs/BACKEND_AUDIT.md).
 
 The following capabilities are planned:
 
@@ -151,7 +165,7 @@ The following capabilities are planned:
 - API credentials are stored in environment variables.
 - `.env` must remain excluded from version control.
 - Website requests include URL safety checks and response-size limits.
-- Production-grade SSRF protection and additional security hardening remain planned.
+- Connection-time public IP validation, DNS rebinding mitigation, redirect restrictions and bounded response handling are implemented and locally tested. Production network isolation and application security remain pending.
 
 ## License
 

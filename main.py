@@ -55,6 +55,8 @@ def main() -> None:
     logging.basicConfig(
         level=settings.log_level, format="%(levelname)s %(name)s %(message)s"
     )
+    logging.getLogger("httpx").setLevel(logging.WARNING)
+    logging.getLogger("httpcore").setLevel(logging.WARNING)
     request = read_search_request()
 
     print("\nSearch configuration")
@@ -89,6 +91,10 @@ def main() -> None:
     print(f"Pages processed: {search_result.pages_processed}")
 
     print(f"Resolve requests: {search_result.resolve_requests}")
+    print(f"Website search requests: {search_result.website_search_requests}")
+    print(f"Website sources: {search_result.website_source_counts}")
+    print(f"Website fallback outcomes: {search_result.website_fallback_outcomes}")
+    print(f"Website candidate outcomes: {search_result.website_candidate_outcomes}")
 
     print(f"Reported API credits: {search_result.reported_credits}")
 

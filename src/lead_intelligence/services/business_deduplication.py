@@ -292,6 +292,8 @@ class BusinessDeduplicationService:
         # Replace missing or invalid websites with valid websites.
         if not existing_domain and incoming_domain:
             existing.website = incoming.website
+            existing.website_status = incoming.website_status
+            existing.website_source = incoming.website_source
 
         # Fill missing scalar values without overwriting known data.
         for field_name in self.MERGEABLE_TEXT_FIELDS:

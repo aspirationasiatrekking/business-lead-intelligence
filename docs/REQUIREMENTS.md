@@ -63,6 +63,8 @@ The initial search provider is Serper Places.
   official business websites.
 - Preserve businesses that do not have an available website.
 
+Optional organic website recovery must be budget-controlled, require corroborating identity evidence, and report outcomes; unverified candidates must not replace known websites.
+
 ### FR-05: Business Data Mapping
 
 Map external provider results into a consistent internal
@@ -173,8 +175,7 @@ A high lead score indicates information completeness,
 not independently verified business legitimacy,
 commercial value, or contact deliverability.
 
-Scoring rules must be verified against the implementation
-during the backend audit.
+Scoring rules have been locally verified (policy version 2); production acceptance remains separate.
 
 ### FR-10: Duplicate Search Detection
 
@@ -208,6 +209,8 @@ results satisfy a new request.
 - Use database migrations for schema changes.
 
 Different searches may discover the same business.
+
+Persist search geography separately from business geography, provider identity and contact/website provenance. Preserve historical contacts and websites on incomplete refreshes, with freshness and verification metadata.
 
 The persistence model must preserve relationships
 between businesses and their discovery searches.

@@ -1,3 +1,4 @@
+from collections import Counter
 from copy import deepcopy
 
 import requests
@@ -20,11 +21,16 @@ from src.lead_intelligence.search.serper_provider import (
 from src.lead_intelligence.services.business_deduplication import (
     BusinessDeduplicationService,
 )
+from src.lead_intelligence.services.website_acquisition import (
+    WebsiteAcquisitionService,
+    name_key,
+)
 from src.lead_intelligence.settings import ApplicationSettings
 from src.lead_intelligence.utils.business_identity import normalize_serper_cid
 from src.lead_intelligence.utils.country_utils import (
     normalize_country_code,
 )
+from src.lead_intelligence.utils.website_policy import is_candidate_business_website
 
 
 class BusinessSearchService:
@@ -44,6 +50,7 @@ class BusinessSearchService:
     )
 
     def __init__(self, provider=None, *, settings: ApplicationSettings | None = None):
+        self.max_website_searches = settings.max_website_searches if settings else 0
         if settings is not None:
             self.MAX_SEARCH_PAGES = settings.max_search_pages
             self.MAX_NO_PROGRESS_PAGES = settings.max_no_progress_pages
@@ -242,7 +249,10 @@ class BusinessSearchService:
             for original, resolved in zip(places, resolved_places, strict=True):
                 merged = original.copy()
                 if is_google_redirect(original.get("website")):
-                    merged["website"] = resolved.get("website")
+                    candidate = resolved.get("website")
+                    if is_candidate_business_website(candidate):
+                        merged["website"] = candidate
+                        merged["_website_source"] = "resolve"
                 merged_places.append(merged)
             return merged_places
 
@@ -425,5 +435,52 @@ class BusinessSearchService:
             result.stop_reason = "page_budget_reached"
 
         result.businesses = unique_businesses[:max_results]
-
+        acquisition = WebsiteAcquisitionService()
+        outcomes: Counter[str] = Counter()
+        candidates: Counter[str] = Counter()
+        provider_failed = False
+        for business in result.businesses:
+            if business.website:
+                outcomes["already_available"] += 1
+                continue
+            if self.max_website_searches == 0:
+                outcomes["disabled"] += 1
+                continue
+            if not business.phone_numbers:
+                outcomes["no_phone"] += 1
+                continue
+            if len(name_key(business.name).split()) < 2:
+                outcomes["insufficient_name"] += 1
+                continue
+            if provider_failed:
+                outcomes["provider_unavailable"] += 1
+                continue
+            if result.website_search_requests >= self.max_website_searches:
+                outcomes["budget_exhausted"] += 1
+                continue
+            result.website_search_requests += 1
+            try:
+                response = self.provider.search_organic(
+                    f"{business.name} {business.address or ''} official website",
+                    country=country,
+                )
+            except self.PROVIDER_ERRORS as error:
+                result.unknown_credit_responses += 1
+                result.warnings.append(
+                    f"Website search failed ({type(error).__name__})"
+                )
+                outcomes["provider_error"] += 1
+                provider_failed = True
+                continue
+            self._record_credits(response, result)
+            accepted = acquisition.acquire(business, response, region=region)
+            candidates.update(acquisition.candidate_outcomes)
+            if accepted:
+                outcomes["success"] += 1
+            elif business.website_status == "ambiguous":
+                outcomes["ambiguous"] += 1
+            else:
+                outcomes["no_match"] += 1
+        result.website_fallback_outcomes = dict(outcomes)
+        result.website_candidate_outcomes = dict(candidates)
         return result

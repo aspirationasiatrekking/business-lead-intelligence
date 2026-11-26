@@ -354,6 +354,10 @@ def _request_website_html(url: str, *, business_only: bool = False) -> FetchedPa
 
                 else:
                     response.raise_for_status()
+                    if response.status_code != 200:
+                        raise UnsupportedContentError(
+                            "Expected HTTP 200 website response"
+                        )
 
                     return FetchedPage(
                         html=read_response_html(response, deadline),
@@ -480,6 +484,12 @@ def find_contact_pages(url: str, html: str) -> list[str]:
             if key == normalize_page_url(url):
                 continue
         except ValueError:
+            continue
+        segments = unquote(parsed.path).casefold().strip("/").split("/")
+        if any(
+            segment in {"trip", "trips", "blog", "blogs", "articles"}
+            for segment in segments
+        ):
             continue
         text = link.get_text(" ", strip=True)
         score = max(contact_page_score(text), contact_page_score(parsed.path))

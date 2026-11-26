@@ -53,7 +53,7 @@ a concrete problem or requirement.
 
 ## 4. Development Workflow
 
-Development must proceed one task at a time.
+Development must proceed in verified, focused tasks. Closely related changes may be batched.
 
 For every task:
 
@@ -67,7 +67,7 @@ For every task:
 8. Run relevant tests.
 9. Run the complete verification suite when appropriate.
 10. Review the results.
-11. Update project documentation.
+11. Update project documentation (related changes may be batched at session end).
 12. Commit verified changes.
 
 Do not proceed to the next task until the current task
@@ -180,7 +180,8 @@ the test suite pass.
 Run the following commands before declaring significant
 backend changes complete:
 
-    python -m pytest
+    python -m pip check
+    python -m pytest --cov=src/lead_intelligence --cov-report=term-missing
     python -m ruff check .
     python -m ruff format --check .
 

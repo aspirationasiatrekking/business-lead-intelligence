@@ -76,47 +76,34 @@ Add error handling for invalid JSON responses from Serper API.
 
 ## 26 November 2026 — Day 4
 
-### Objectives
+Documentation foundation committed at 530ecd8. Backend stabilization implemented through 7bc9e25, with final website acquisition changes staged. Major work:
 
-- Establish permanent project documentation.
-- Verify backend baseline.
-- Begin backend production-readiness audit.
-- Resolve prioritized backend issues.
-- Maintain automated test coverage.
-
-### Documentation Progress
-
-- DOC-01: Repository inspection completed.
-- DOC-02: AGENTS.md prepared.
-- DOC-03: Project context and requirements prepared.
-- DOC-04: System architecture prepared.
-- DOC-05: Master roadmap prepared.
-- DOC-06: Project status prepared.
-- DOC-07: Architectural decisions prepared.
-- DOC-08: Development and backend audit logs prepared.
-
-Documentation awaits final review and commit.
-
-### Backend Changes
-
-None recorded yet.
+- Dependency cleanup and CI checks (379be8e, f2aadcf).
+- Secure HTTP transport and DNS rebinding protection (2eea348).
+- International search requests, pagination and credits (c458ddc, 8b6227e).
+- CID-aware identity and deduplication (645d8ee).
+- Contact extraction and provenance (3703b5e); offline geographic enrichment (83c1f5e).
+- Scoring version/snapshot (4080adc); atomic export security (c40557f).
+- Reusable pipeline (6d842c9); explicit configuration and credential security (7bc9e25).
+- Staged acquisition batch: optional organic search, name/phone verification, provenance and diagnostics, HTTP 200 policy, contact-link filtering and quieter HTTP logs.
 
 ### Verification
 
-- Git branch: main
-- Initial working tree: Clean
-- Initial baseline commit: d167788
-- Initial remote synchronization: Up to date
-- Today's automated backend verification: Pending
+Local verification on 26 November 2026 (Python 3.13.17, Windows):
 
-### Next Tasks
+- 1,173 tests passed in 19.79 seconds; 96% statement coverage (2,012 statements, 80 missed). Coverage excludes main.py and is not branch coverage.
+- pip check and Ruff lint passed; 86 Python files formatted; staged and unstaged diff checks clean.
+- Both declared-dependency and installed-environment pip-audit scans reported no known vulnerabilities earlier in the session; no dependencies changed in the final acquisition batch.
+- Gitleaks: 38 commits / approximately 706,801 bytes of history and 14,197 bytes of staged changes scanned; no leaks, both exit codes 0. .env ignored, untracked and absent from available history.
+- Latest acquisition changes: 11 staged files, 337 insertions, 2 deletions, based on 7bc9e25. Final commit and remote CI not yet verified.
 
-- Complete documentation review.
-- Commit and push documentation.
-- Run complete backend verification.
-- Begin systematic backend audit.
+### Live acceptance
 
----
+Kathmandu, London and Denver searches completed; latest London run returned 10 direct websites, seven successful extractions, two no-contact outcomes and one failed fetch, all exported. No organic request needed in the last run. Earlier organic calls executed successfully but their recovery benefit was not established. See PROJECT_STATUS.md for run-level metrics.
+
+### Remaining work
+
+Final documentation and .env.example review, staged secret scan, commit/push and CI verification. Phase 4 database design follows. See BACKEND_AUDIT.md for deferred risks. No production readiness claim.
 
 ## Development Entry Template
 

@@ -52,6 +52,8 @@ class Business:
 
     # Metadata for scores calculated by LeadScoringService.
     score_version: str | None = None
+    website_status: str = "unknown"
+    website_source: str | None = None
     _score_snapshot: tuple | None = field(
         default=None, init=False, repr=False, compare=False
     )

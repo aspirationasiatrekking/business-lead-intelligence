@@ -169,7 +169,9 @@ architectural review.
 - Python
 - Serper Places API
 - Serper Resolve API
-- Requests
+- Optional Serper organic Search API (disabled by default)
+- Requests (provider)
+- HTTPX/httpcore (secure website retrieval)
 - BeautifulSoup
 - Phonenumbers
 - OpenPyXL
@@ -181,7 +183,7 @@ architectural review.
 ### Planned
 
 - FastAPI backend
-- Relational database
+- PostgreSQL (planned; schema and access strategy pending)
 - Database migrations
 - Background job processing
 - React frontend

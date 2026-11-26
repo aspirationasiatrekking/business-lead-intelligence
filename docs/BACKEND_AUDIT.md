@@ -15,9 +15,9 @@ API, frontend, and concurrency development.
 ## 2. Audit Status
 
 - Baseline commit: d167788
-- Audit status: Pending
+- Audit status: Local stabilization verified; final commit/CI pending
 - Production readiness: Not established
-- Confirmed findings: Not yet recorded
+- Confirmed findings and residual risks recorded below
 
 ## 3. Severity Classification
 
@@ -42,38 +42,40 @@ API, frontend, and concurrency development.
 
 | ID | Component | Investigation | Status |
 |---|---|---|---|
-| AUD-001 | Engineering | Automated test baseline | Pending |
-| AUD-002 | Engineering | Dependency management | Pending |
-| AUD-003 | Engineering | CI configuration | Pending |
-| AUD-004 | Architecture | Component responsibilities | Pending |
-| AUD-005 | Business model | Missing required fields | Pending |
-| AUD-006 | Business mapper | Geographic data handling | Pending |
-| AUD-007 | Serper provider | Request validation | Pending |
-| AUD-008 | Serper provider | Response validation | Pending |
-| AUD-009 | Serper provider | Retry and rate limiting | Pending |
-| AUD-010 | Business search | Pagination and termination | Pending |
-| AUD-011 | Business search | Duplicate results | Pending |
-| AUD-012 | URL security | SSRF protection | Pending |
-| AUD-013 | URL security | DNS rebinding protection | Pending |
-| AUD-014 | Website scraper | Redirect validation | Pending |
-| AUD-015 | Website scraper | Response-size limits | Pending |
-| AUD-016 | Website scraper | Timeout and cleanup | Pending |
-| AUD-017 | Contact discovery | Contact page selection | Pending |
-| AUD-018 | Contact discovery | Source tracking | Pending |
-| AUD-019 | Contact discovery | Partial failure handling | Pending |
-| AUD-020 | Contact extraction | Email extraction accuracy | Pending |
-| AUD-021 | Contact extraction | Phone normalization | Pending |
-| AUD-022 | Deduplication | Incorrect business merging | Pending |
-| AUD-023 | Deduplication | Multiple business branches | Pending |
-| AUD-024 | Lead scoring | Score and quality correctness | Pending |
-| AUD-025 | Excel exporter | Formula injection protection | Pending |
-| AUD-026 | CSV exporter | Formula injection protection | Pending |
-| AUD-027 | Exporters | Field consistency | Pending |
-| AUD-028 | CLI | Hardcoded geographic assumptions | Pending |
-| AUD-029 | CLI | Pipeline orchestration coupling | Pending |
-| AUD-030 | Configuration | Secret management | Pending |
-| AUD-031 | Testing | Missing regression coverage | Pending |
-| AUD-032 | Testing | Pytest asyncio warning | Pending |
+| AUD-001 | Engineering | Automated test baseline | Verified locally |
+| AUD-002 | Engineering | Dependency management | Resolved locally; lock deferred |
+| AUD-003 | Engineering | CI configuration | Configured; final CI pending |
+| AUD-004 | Architecture | Component responsibilities | Core reviewed; infrastructure pending |
+| AUD-005 | Business model | Missing required fields | Core model verified; persistent fields pending |
+| AUD-006 | Business mapper | Geographic data handling | Offline verified; geocoding deferred |
+| AUD-007 | Serper provider | Request validation | Verified locally; residual risks below |
+| AUD-008 | Serper provider | Response validation | Verified locally; residual risks below |
+| AUD-009 | Serper provider | Retry and rate limiting | Verified locally; residual risks below |
+| AUD-010 | Business search | Pagination and termination | Verified locally; residual risks below |
+| AUD-011 | Business search | Duplicate results | Verified locally; residual risks below |
+| AUD-012 | URL security | SSRF protection | Verified locally; residual risks below |
+| AUD-013 | URL security | DNS rebinding protection | Verified locally; residual risks below |
+| AUD-014 | Website scraper | Redirect validation | Verified locally; residual risks below |
+| AUD-015 | Website scraper | Response-size limits | Verified locally; residual risks below |
+| AUD-016 | Website scraper | Timeout and cleanup | Verified locally; residual risks below |
+| AUD-017 | Contact discovery | Contact page selection | Improved; ranking deferred |
+| AUD-018 | Contact discovery | Source tracking | Verified locally; residual risks below |
+| AUD-019 | Contact discovery | Partial failure handling | Verified locally; residual risks below |
+| AUD-020 | Contact extraction | Email extraction accuracy | Syntax/extraction verified; relevance deferred |
+| AUD-021 | Contact extraction | Phone normalization | Verified locally; residual risks below |
+| AUD-022 | Deduplication | Incorrect business merging | Verified locally; residual risks below |
+| AUD-023 | Deduplication | Multiple business branches | CID rules verified; persistent identity pending |
+| AUD-024 | Lead scoring | Score and quality correctness | Verified locally; residual risks below |
+| AUD-025 | Excel exporter | Formula injection protection | Verified locally; residual risks below |
+| AUD-026 | CSV exporter | Formula injection protection | Verified locally; residual risks below |
+| AUD-027 | Exporters | Field consistency | Shared schema verified; live CSV parity pending |
+| AUD-028 | CLI | Hardcoded geographic assumptions | Verified locally; residual risks below |
+| AUD-029 | CLI | Pipeline orchestration coupling | Verified locally; residual risks below |
+| AUD-030 | Configuration | Secret management | Local scans passed; production secrets pending |
+| AUD-031 | Testing | Missing regression coverage | Local acceptance passed; final CI pending |
+| AUD-032 | Testing | Pytest asyncio warning | Resolved locally |
+
+| AUD-033 | Website acquisition | Optional fallback and diagnostics | Locally verified; live recovery effectiveness unproven |
 
 The audit queue identifies investigation targets.
 It does not establish that these components are defective.
@@ -124,10 +126,28 @@ Verified using an isolated Python 3.13.17 environment.
 
 #### Remaining Work
 
-- Remote CI verification
-- Dependency vulnerability scanning
-- Transitive dependency locking
+- Final checkpoint remote CI verification
+- Transitive dependency locking (both local vulnerability scans passed)
 
+
+### Additional verified findings and fixes (Day 4)
+
+| Audit references | Evidence / resolution | Residual risk |
+|---|---|---|
+| AUD-005–011, 028 | Structured requests, bounded pagination, CID alignment, credit counters and international mapping | Provider variability; unknown billing on retries |
+| AUD-012–016 | Connection-time public IP checks, TLS verification, redirects, response bounds and local security regression tests | Production egress isolation, hard deadlines and transport upgrade review |
+| AUD-017–023 | HTML contact extraction, source evidence, same-site policy and branch-aware CID matching | False positives, page ranking, historical identity |
+| AUD-024–027 | Versioned completeness scoring, shared schema, formula safety and atomic individual exports | Contact relevance and paired export transaction |
+| AUD-029–030 | Reusable pipeline, explicit settings, redacted logging and secret scans | Shared rate limiting, structured logging and production secret management |
+| AUD-031–033 | Regression suite and live acquisition diagnostics; opt-in fallback | Final CI; fallback recovery benefit unproven |
+
+Local verification on 26 November 2026 (Python 3.13.17, Windows):
+
+- 1,173 tests passed in 19.79 seconds; 96% statement coverage (2,012 statements, 80 missed). Coverage excludes main.py and is not branch coverage.
+- pip check and Ruff lint passed; 86 Python files formatted; staged and unstaged diff checks clean.
+- Both declared-dependency and installed-environment pip-audit scans reported no known vulnerabilities earlier in the session; no dependencies changed in the final acquisition batch.
+- Gitleaks: 38 commits / approximately 706,801 bytes of history and 14,197 bytes of staged changes scanned; no leaks, both exit codes 0. .env ignored, untracked and absent from available history.
+- Latest acquisition changes: 11 staged files, 337 insertions, 2 deletions, based on 7bc9e25. Final commit and remote CI not yet verified.
 
 ## 7. Finding Template
 
@@ -167,28 +187,30 @@ Record the commit that resolves the finding.
 
 ## 8. Deferred Technical Debt
 
-Record intentionally deferred improvements here.
+- Provider results vary between repeated searches. Direct/Resolve URLs are candidates, not independent ownership proof. Organic fallback is opt-in and requires homepage name and matching phone; live recovery effectiveness remains unproven. Candidate ranking and contact-page verification need improvement.
+- Structured business geography remains incomplete. Search geography is not verified business geography; preserve unknown fields. Persistent reverse geocoding/cache is planned.
+- Email syntax and phone validity do not establish ownership, freshness, deliverability or commercial relevance. Scores measure completeness.
+- HTTP-only extraction can fail on blocked, compressed, JavaScript-dependent or non-200 responses; no bypass. Contact-page ranking and redundant redirected downloads can be improved.
+- SSRF controls are locally tested, not a substitute for production network isolation. DNS/time budgets are cooperative; per-session rate limits are not shared worker limits. Review private httpcore transport integration on upgrades.
+- Direct dependencies are pinned, transitive locking and automated recurring security scanning remain pending. Secret scans are not guarantees.
+- Atomic export protects individual files, not the Excel/CSV pair as a transaction. Live CSV parity was not independently inspected.
+- Persistent identity, historical data merging, job recovery, authentication, structured operational logging, deployment and backups remain unimplemented.
 
-Each deferred item must include:
-
-- Description
-- Reason for deferral
-- Risk
-- Conditions for reconsideration
+Reconsider persistence-related issues in Phase 4, extraction performance in Phase 9, and infrastructure/security risks before production in Phases 10–11.
 
 ## 9. Backend Stabilization Gate
 
-- [ ] Establish automated verification baseline.
-- [ ] Review all core backend components.
-- [ ] Record confirmed findings.
-- [ ] Resolve critical security findings.
-- [ ] Resolve blocking reliability issues.
-- [ ] Resolve data corruption risks.
-- [ ] Document remaining technical debt.
-- [ ] Verify international compatibility.
-- [ ] Run complete automated test suite.
-- [ ] Pass Ruff linting and formatting.
-- [ ] Complete controlled live integration testing.
+- [x] Establish automated verification baseline.
+- [x] Review core backend components within local stabilization scope.
+- [x] Record confirmed findings.
+- [x] Address identified local SSRF/export security findings; production review pending.
+- [x] Address identified local blocking reliability issues.
+- [x] Address identified local export and merge risks; persistence risks pending.
+- [x] Document remaining technical debt.
+- [x] Verify sampled international CLI compatibility.
+- [x] Run complete automated test suite.
+- [x] Pass Ruff linting and formatting.
+- [x] Complete controlled live pipeline testing; fallback recovery not established.
 - [ ] Pass GitHub Actions CI.
 - [ ] Update project status and master roadmap.
 

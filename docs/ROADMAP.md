@@ -23,7 +23,7 @@ Existing features must be reviewed during the backend audit.
 - [x] DOC-06: Project status
 - [x] DOC-07: Architectural decisions
 - [x] DOC-08: Development and backend audit logs
-- [ ] DOC-09: Documentation review and commit
+- [x] DOC-09: Initial documentation review and commit (530ecd8)
 
 Exit criteria:
 - Repository contains sufficient documentation to resume
@@ -153,140 +153,140 @@ Production readiness has not yet been established.
 
 ### 2.1 Baseline Verification
 
-- [ ] Run complete pytest suite
-- [ ] Record exact test count
-- [ ] Run Ruff linting
-- [ ] Run Ruff formatting checks
-- [ ] Review test warnings
-- [ ] Verify dependency declarations
-- [ ] Review GitHub Actions configuration
+- [x] Run complete pytest suite
+- [x] Record exact test count
+- [x] Run Ruff linting
+- [x] Run Ruff formatting checks
+- [x] Review test warnings
+- [x] Verify dependency declarations
+- [x] Review GitHub Actions configuration
 - [ ] Establish updated backend checkpoint
 
 ### 2.2 Architecture Audit
 
-- [ ] Review package structure
-- [ ] Review component responsibilities
-- [ ] Review dependency direction
-- [ ] Identify unnecessary dependencies
-- [ ] Identify duplicated business logic
-- [ ] Review exception handling consistency
-- [ ] Review resource lifecycle management
-- [ ] Identify excessive coupling
-- [ ] Record architectural findings
+- [x] Review package structure
+- [x] Review component responsibilities
+- [x] Review dependency direction
+- [x] Identify unnecessary dependencies
+- [x] Identify duplicated business logic
+- [x] Review exception handling consistency
+- [x] Review resource lifecycle management
+- [x] Identify excessive coupling
+- [x] Record architectural findings
 
 ### 2.3 Business Model Audit
 
-- [ ] Compare Business model against FR-05
-- [ ] Review field types and validation
-- [ ] Review missing-value representation
-- [ ] Review mutable collection handling
-- [ ] Add missing geographic fields
-- [ ] Add source information
-- [ ] Add contact page information
-- [ ] Add extraction status
-- [ ] Review lead score and quality representation
-- [ ] Update affected services and exporters
-- [ ] Add regression tests
+- [x] Compare Business model against FR-05
+- [x] Review field types and validation
+- [x] Review missing-value representation
+- [x] Review mutable collection handling
+- [x] Add missing geographic fields
+- [x] Add source information
+- [x] Add contact page information
+- [x] Add extraction status
+- [x] Review lead score and quality representation
+- [x] Update affected services and exporters
+- [x] Add regression tests
 
 Persistent identifiers and database timestamps may be
 introduced during the persistence phase.
 
 ### 2.4 Search Provider Audit
 
-- [ ] Review request payload construction
-- [ ] Review API response validation
-- [ ] Review retryable failure classification
-- [ ] Review rate limiting
-- [ ] Review Retry-After behavior
-- [ ] Review timeout configuration
-- [ ] Review pagination termination
-- [ ] Review duplicate result handling
-- [ ] Review redirect resolution
-- [ ] Review provider resource cleanup
-- [ ] Review API credit consumption
-- [ ] Fix confirmed defects
-- [ ] Add regression tests
+- [x] Review request payload construction
+- [x] Review API response validation
+- [x] Review retryable failure classification
+- [x] Review rate limiting
+- [x] Review Retry-After behavior
+- [x] Review timeout configuration
+- [x] Review pagination termination
+- [x] Review duplicate result handling
+- [x] Review redirect resolution
+- [x] Review provider resource cleanup
+- [x] Review API credit consumption
+- [x] Fix confirmed defects
+- [x] Add regression tests
 
 ### 2.5 Contact Discovery Audit
 
-- [ ] Review website fetch behavior
-- [ ] Review contact page discovery
-- [ ] Review internal and external link handling
-- [ ] Review duplicate page detection
-- [ ] Review email extraction accuracy
-- [ ] Review phone extraction accuracy
-- [ ] Review false-positive handling
-- [ ] Review source tracking
-- [ ] Review partial extraction failures
-- [ ] Review preservation of provider contact data
-- [ ] Review extraction limits
-- [ ] Add regression tests
+- [x] Review website fetch behavior
+- [x] Review contact page discovery
+- [x] Review internal and external link handling
+- [x] Review duplicate page detection
+- [x] Review email extraction accuracy
+- [x] Review phone extraction accuracy
+- [x] Review false-positive handling
+- [x] Review source tracking
+- [x] Review partial extraction failures
+- [x] Review preservation of provider contact data
+- [x] Review extraction limits
+- [x] Add regression tests
 
 ### 2.6 Security Audit
 
-- [ ] Review URL parsing and validation
-- [ ] Review private IP address blocking
-- [ ] Review loopback address blocking
-- [ ] Review link-local address blocking
-- [ ] Review IPv4 and IPv6 handling
-- [ ] Review DNS resolution
-- [ ] Review DNS rebinding protection
-- [ ] Review redirect safety
-- [ ] Review unsafe URL schemes
-- [ ] Review URL credential handling
-- [ ] Review response-size limits
-- [ ] Review request timeout limits
-- [ ] Review spreadsheet formula injection protection
-- [ ] Review secret management
-- [ ] Review sensitive information in logs
-- [ ] Fix confirmed security defects
-- [ ] Add security regression tests
+- [x] Review URL parsing and validation
+- [x] Review private IP address blocking
+- [x] Review loopback address blocking
+- [x] Review link-local address blocking
+- [x] Review IPv4 and IPv6 handling
+- [x] Review DNS resolution
+- [x] Review DNS rebinding protection
+- [x] Review redirect safety
+- [x] Review unsafe URL schemes
+- [x] Review URL credential handling
+- [x] Review response-size limits
+- [x] Review request timeout limits
+- [x] Review spreadsheet formula injection protection
+- [x] Review secret management
+- [x] Review and reduce sensitive information in local logs; production structured logging pending
+- [x] Fix confirmed security defects
+- [x] Add security regression tests
 
 ### 2.7 Deduplication Audit
 
-- [ ] Review domain normalization
-- [ ] Review shared website domains
-- [ ] Review shared phone numbers
-- [ ] Review business name normalization
-- [ ] Review address matching
-- [ ] Review multiple business branches
-- [ ] Review merge conflict handling
-- [ ] Review incorrect merge risks
-- [ ] Review duplicate detection across search pages
-- [ ] Add regression tests
+- [x] Review domain normalization
+- [x] Review shared website domains
+- [x] Review shared phone numbers
+- [x] Review business name normalization
+- [x] Review address matching
+- [x] Review multiple business branches
+- [x] Review merge conflict handling
+- [x] Review incorrect merge risks
+- [x] Review duplicate detection across search pages
+- [x] Add regression tests
 
 ### 2.8 Lead Scoring Audit
 
-- [ ] Verify scoring against documented requirements
-- [ ] Verify maximum score
-- [ ] Verify classification boundaries
-- [ ] Review incomplete contact information
-- [ ] Review score recalculation after merging
-- [ ] Ensure score represents information completeness
-- [ ] Add missing boundary tests
+- [x] Verify scoring against documented requirements
+- [x] Verify maximum score
+- [x] Verify classification boundaries
+- [x] Review incomplete contact information
+- [x] Review score recalculation after merging
+- [x] Ensure score represents information completeness
+- [x] Add missing boundary tests
 
 ### 2.9 Export Audit
 
-- [ ] Compare Excel and CSV field definitions
-- [ ] Review missing-value handling
-- [ ] Review international character encoding
-- [ ] Review spreadsheet formula injection safeguards
-- [ ] Review output path safety
-- [ ] Review large export behavior
-- [ ] Review empty exports
-- [ ] Add regression tests
+- [x] Compare Excel and CSV field definitions
+- [x] Review missing-value handling
+- [x] Review international character encoding
+- [x] Review spreadsheet formula injection safeguards
+- [x] Review output path safety
+- [x] Review large export behavior
+- [x] Review empty exports
+- [x] Add regression tests
 
 ### 2.10 Backend Stabilization Gate
 
-- [ ] Record all identified audit findings
-- [ ] Classify findings by severity
-- [ ] Resolve critical security issues
-- [ ] Resolve blocking reliability issues
-- [ ] Resolve data corruption risks
-- [ ] Document deferred technical debt
-- [ ] Run complete test suite
-- [ ] Pass Ruff checks
-- [ ] Perform controlled live integration tests
+- [x] Record all identified audit findings
+- [x] Classify findings by severity
+- [x] Address identified local critical security issues; production review pending
+- [x] Address identified local blocking reliability issues
+- [x] Address identified local data corruption risks; persistent data review pending
+- [x] Document deferred technical debt
+- [x] Run complete test suite
+- [x] Pass Ruff checks
+- [x] Perform controlled live integration tests
 - [ ] Pass GitHub Actions CI
 - [ ] Update project status
 
@@ -300,56 +300,60 @@ testable and reusable to support the next phase.
 
 ### 3.1 Search Input
 
-- [ ] Establish structured search input model
-- [ ] Validate country codes
-- [ ] Validate city input
-- [ ] Validate search query
-- [ ] Validate maximum results
-- [ ] Implement consistent query construction
-- [ ] Remove inappropriate hardcoded Nepal assumptions
+- [x] Establish structured search input model
+- [x] Validate country codes
+- [x] Validate city input
+- [x] Validate search query
+- [x] Validate maximum results
+- [x] Implement consistent query construction
+- [x] Remove inappropriate hardcoded Nepal assumptions
 
 ### 3.2 Geographic Compatibility
 
-- [ ] Propagate country context through the pipeline
-- [ ] Implement region-aware phone normalization
-- [ ] Preserve internationally formatted phone numbers
-- [ ] Distinguish requested and discovered locations
-- [ ] Support missing geographic information
-- [ ] Review address parsing strategy
-- [ ] Test international business records
+- [x] Propagate country context through the pipeline
+- [x] Implement region-aware phone normalization
+- [x] Preserve internationally formatted phone numbers
+- [x] Distinguish requested and discovered locations
+- [x] Support missing geographic information
+- [x] Review address parsing strategy
+- [x] Test international business records
 
 ### 3.3 Discovery Quality
 
-- [ ] Review official website identification
-- [ ] Identify unrelated directory and article results
-- [ ] Preserve businesses without websites
-- [ ] Track website validation outcomes
-- [ ] Improve extraction source tracking
-- [ ] Establish extraction status definitions
+- [x] Review official website identification
+- [x] Identify unrelated directory and article results
+- [x] Preserve businesses without websites
+- [x] Track website validation outcomes
+- [x] Improve extraction source tracking
+- [x] Establish extraction status definitions
 - [ ] Improve contact relevance where practical
+
+- [x] Implement optional organic website acquisition and aggregate diagnostics (AUD-033)
+- [ ] Demonstrate live fallback recovery effectiveness (deferred)
 
 ### 3.4 Pipeline Orchestration
 
-- [ ] Review main.py responsibilities
-- [ ] Extract reusable pipeline orchestration
-- [ ] Introduce structured pipeline input
-- [ ] Introduce structured pipeline output
-- [ ] Introduce processing reports
-- [ ] Support progress reporting callbacks
-- [ ] Support individual business failure isolation
-- [ ] Decouple pipeline from CLI input and output
-- [ ] Decouple pipeline from file export
-- [ ] Add pipeline integration tests
+- [x] Review main.py responsibilities
+- [x] Extract reusable pipeline orchestration
+- [x] Introduce structured pipeline input
+- [x] Introduce structured pipeline output
+- [x] Introduce processing reports
+- [x] Support progress reporting callbacks
+- [x] Support individual business failure isolation
+- [x] Decouple pipeline from CLI input and output
+- [x] Decouple pipeline from file export
+- [x] Add pipeline integration tests
 
 ### 3.5 Verification
 
-- [ ] Test Nepal-based searches
-- [ ] Test international searches
-- [ ] Test searches with no results
-- [ ] Test partial extraction failures
-- [ ] Verify requested maximum result handling
-- [ ] Verify international exports
-- [ ] Pass automated verification
+- [x] Test Nepal-based searches
+- [x] Test international searches
+- [x] Test searches with no results
+- [x] Test partial extraction failures
+- [x] Verify requested maximum result handling
+- [x] Inspect international Excel exports and verify automated CSV/Excel parity
+- [ ] Independently inspect live CSV parity
+- [x] Pass automated verification
 - [ ] Update project status
 
 Exit criteria:
@@ -395,6 +399,9 @@ the CLI and supports international business searches.
 - [ ] Implement business retrieval
 - [ ] Implement business updates
 - [ ] Implement contact merging
+- [ ] Preserve historical website/contact observations, verification and freshness
+- [ ] Implement persistent website cache and geographic enrichment cache
+- [ ] Separate search geography from actual business geography
 - [ ] Implement source persistence
 - [ ] Implement transaction management
 - [ ] Handle database failures
@@ -809,14 +816,14 @@ must not delay the initial production release.
 
 Date: 26 November 2026
 
-Current phase:
-Phase 0 — Permanent Project Documentation
+Phase 2 local stabilization and Phase 3 international CLI core verified. Final checkpoint documentation, commit and exact-commit CI remain pending. Next: Phase 4 PostgreSQL design after closure. Deferred extraction and geography items do not imply production readiness.
 
-Current task:
-DOC-05 — Establish master development roadmap
+Local verification on 26 November 2026 (Python 3.13.17, Windows):
 
-Next task:
-DOC-06 — Record current project status
+- 1,173 tests passed in 19.79 seconds; 96% statement coverage (2,012 statements, 80 missed). Coverage excludes main.py and is not branch coverage.
+- pip check and Ruff lint passed; 86 Python files formatted; staged and unstaged diff checks clean.
+- Both declared-dependency and installed-environment pip-audit scans reported no known vulnerabilities earlier in the session; no dependencies changed in the final acquisition batch.
+- Gitleaks: 38 commits / approximately 706,801 bytes of history and 14,197 bytes of staged changes scanned; no leaks, both exit codes 0. .env ignored, untracked and absent from available history.
+- Latest acquisition changes: 11 staged files, 337 insertions, 2 deletions, based on 7bc9e25. Final commit and remote CI not yet verified.
 
-Next engineering phase:
-Phase 2 — Backend Audit and Stabilization
+See BACKEND_AUDIT.md for residual risks and PROJECT_STATUS.md for live evidence.

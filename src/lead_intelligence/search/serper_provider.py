@@ -224,6 +224,21 @@ class SerperSearchProvider:
 
         return self._validate_places_response(response)
 
+    def search_organic(self, query: str, country: str | None = None) -> dict:
+        """Retrieve a small set of website candidates, not verified identities."""
+        if not isinstance(query, str) or not query.strip():
+            raise ValueError("Organic query must be nonempty text")
+        payload = {"q": query.strip(), "hl": "en", "num": 5}
+        country = normalize_country_code(country)
+        if country:
+            payload["gl"] = country
+        response = self._post("search", payload)
+        if not isinstance(response, dict) or not isinstance(
+            response.get("organic"), list
+        ):
+            raise SerperResponseError("Invalid organic search response")
+        return response
+
     def resolve_links(self, results: dict) -> dict:
         """Resolve supported Google redirects in Serper Places results."""
         self._validate_places_response(results)

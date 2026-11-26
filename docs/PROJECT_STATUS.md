@@ -1,180 +1,47 @@
-
 # Business Lead Intelligence — Project Status
 
-Last updated: 26 November 2026
+Last updated: 26 November 2026 (Day 4)
 
-## 1. Project Overview
+## 1. Current position
 
-- Project: Business Lead Intelligence
-- Organization: Aspiration Asia Trekking
-- Development stage: Backend prototype
-- Current phase: Phase 0 — Permanent Documentation
-- Production ready: No
-- Repository: https://github.com/aspirationasiatrekking/business-lead-intelligence
+Internal company project for Aspiration Asia Trekking; approximately 3–4 employees initially. Repository: https://github.com/aspirationasiatrekking/business-lead-intelligence. Branch main. Phases 0–1 established; Phase 2 local stabilization verified, final documentation/commit/CI gate pending; Phase 3 international CLI core verified with deferred enrichment. Phase 4 database design is next after checkpoint closure. Not production-ready.
 
-## 2. Repository Checkpoint
+## 2. Verified checkpoint
 
-Last inspected: 26 November 2026
+Local verification on 26 November 2026 (Python 3.13.17, Windows):
 
-- Branch: main
-- Baseline commit: d167788
-- Remote: origin/main
-- Working tree at baseline: Clean
+- 1,173 tests passed in 19.79 seconds; 96% statement coverage (2,012 statements, 80 missed). Coverage excludes main.py and is not branch coverage.
+- pip check and Ruff lint passed; 86 Python files formatted; staged and unstaged diff checks clean.
+- Both declared-dependency and installed-environment pip-audit scans reported no known vulnerabilities earlier in the session; no dependencies changed in the final acquisition batch.
+- Gitleaks: 38 commits / approximately 706,801 bytes of history and 14,197 bytes of staged changes scanned; no leaks, both exit codes 0. .env ignored, untracked and absent from available history.
+- Latest acquisition changes: 11 staged files, 337 insertions, 2 deletions, based on 7bc9e25. Final commit and remote CI not yet verified.
 
-Latest backend commits:
+## 3. Implemented core
 
-- d167788: Handle invalid Serper JSON responses
-- b583506: Validate Serper Places response structure
-- 07ff47e: Improve mapping error isolation
-- f48c104: Add processing reports and fix mapper indexing
-- f1ef552: Protect exports against formula injection
+Structured country/city/query/limit input; paginated Serper Places/Resolve with bounded retry and credit tracking; CID and coordinate mapping, conservative geographic enrichment and identity deduplication; secure HTTP website retrieval; contact discovery and provenance; opt-in organic acquisition and diagnostics; scoring policy v2; shared 16-column Excel/CSV schema and per-file atomic exports; reusable pipeline with progress/failure reports; explicit settings and CI configuration.
 
-Documentation changes after this baseline are
-currently being prepared.
+## 4. Live evidence
 
-## 3. Current Implementation
+Initial Kathmandu/London/Denver runs returned and exported 10 businesses each (30 total). Initial website counts 10/3/3, successful extraction 8/1/3. Updated London/Denver runs returned 10 each; website counts 7/5, success 5/5; reported credits 4/6, durations 86.35/74.03 s. Latest London run: 10 direct websites, zero Resolve/organic calls, one reported credit, 50.58 s, success 7, failed 1, no contacts 2; all 10 scored and exported. Repeated logs with identical run ID count as one run. These are changing provider samples, not proof of fallback effectiveness. No further paid testing required for this checkpoint.
 
-### Implemented
+## 5. Known limitations
 
-- Serper Places API integration
-- Serper Resolve API integration
-- Request rate limiting
-- Bounded retry handling
-- API response validation
-- Invalid JSON error handling
-- Business search service
-- Search pagination
-- Business data mapping
-- Mapping failure isolation
-- Processing result models
-- Website scraping
-- Contact page discovery
-- Email extraction
-- Phone number extraction and normalization
-- Business deduplication
-- Rule-based lead scoring
-- Excel export
-- CSV export
-- Spreadsheet formula injection protection
-- Initial URL security controls
-- Automated tests
-- Ruff linting and formatting
-- GitHub Actions CI
+- Provider results vary between repeated searches. Direct/Resolve URLs are candidates, not independent ownership proof. Organic fallback is opt-in and requires homepage name and matching phone; live recovery effectiveness remains unproven. Candidate ranking and contact-page verification need improvement.
+- Structured business geography remains incomplete. Search geography is not verified business geography; preserve unknown fields. Persistent reverse geocoding/cache is planned.
+- Email syntax and phone validity do not establish ownership, freshness, deliverability or commercial relevance. Scores measure completeness.
+- HTTP-only extraction can fail on blocked, compressed, JavaScript-dependent or non-200 responses; no bypass. Contact-page ranking and redundant redirected downloads can be improved.
+- SSRF controls are locally tested, not a substitute for production network isolation. DNS/time budgets are cooperative; per-session rate limits are not shared worker limits. Review private httpcore transport integration on upgrades.
+- Direct dependencies are pinned, transitive locking and automated recurring security scanning remain pending. Secret scans are not guarantees.
+- Atomic export protects individual files, not the Excel/CSV pair as a transaction. Live CSV parity was not independently inspected.
+- Persistent identity, historical data merging, job recovery, authentication, structured operational logging, deployment and backups remain unimplemented.
 
-Implemented features remain subject to backend audit.
+## 6. Next tasks
 
-### Not Yet Implemented
+1. Review and stage synchronized documentation and .env.example; scan staged changes again.
+2. Commit, push and verify CI for exact new commit; record final checkpoint.
+3. Phase 4: design PostgreSQL schema and identity constraints, select ORM/migrations, establish test database, implement transactional persistence and duplicate query handling, historical contact/website preservation, geographic caching and database exports.
+4. Continue phases 5–12 in ROADMAP.md; design auth before exposing protected operations. No premature concurrency or Playwright.
 
-- Complete production business data model
-- Fully verified international discovery pipeline
-- Reusable pipeline orchestration
-- Persistent database
-- Duplicate query persistence
-- FastAPI application
-- Background job infrastructure
-- React frontend
-- Authentication and authorization
-- Production monitoring
-- Hosted production deployment
+## 7. Continuation
 
-## 4. Last Known Verification
-
-Checkpoint: 25 November 2026
-
-| Check | Last reported result |
-|---|---|
-| Pytest | Passed |
-| Ruff linting | Passed |
-| Ruff formatting | Passed |
-| GitHub Actions | Passed |
-| Live discovery pipeline | Functional |
-| Production security audit | Pending |
-
-The exact current test count and verification results
-must be recorded during the next backend baseline check.
-
-## 5. Current Known Risks and Gaps
-
-The following require investigation:
-
-- Complete SSRF and DNS rebinding protection
-- Redirect safety
-- International geographic assumptions
-- Missing business data fields
-- Contact extraction accuracy
-- Incorrect business merging risks
-- Extraction source tracking
-- Extraction status reporting
-- Excel and CSV field consistency
-- Pipeline orchestration coupling
-- External API cost management
-- Dependency management
-- Pytest asyncio configuration warning
-
-These are audit targets, not necessarily confirmed defects.
-
-Confirmed defects must be recorded in BACKEND_AUDIT.md.
-
-## 6. Documentation Progress
-
-- [x] DOC-01: Repository inspection
-- [x] DOC-02: Engineering instructions
-- [x] DOC-03: Project context and requirements
-- [x] DOC-04: System architecture
-- [x] DOC-05: Master roadmap
-- [X] DOC-06: Project status
-- [X] DOC-07: Architectural decisions
-- [X] DOC-08: Development and backend audit logs
-- [x] DOC-09: Documentation review and commit
-
-Documentation completion is currently based on local
-developer confirmation and awaits final review.
-
-## 7. Current Development Priorities
-
-1. Complete permanent project documentation.
-2. Verify the existing backend baseline.
-3. Audit backend architecture and implementation.
-4. Identify and prioritize security and reliability issues.
-5. Align business models with documented requirements.
-6. Verify international compatibility.
-7. Complete the backend stabilization gate.
-8. Begin persistence and API development.
-
-## 8. Current Task
-
-Task: DOC-06 — Record current project status
-
-Next task:
-DOC-07 — Document architectural decisions
-
-Next engineering phase:
-Phase 2 — Backend Audit and Stabilization
-
-## 9. Development Constraints
-
-- Follow AGENTS.md.
-- Follow the master roadmap.
-- Complete one task at a time.
-- Verify implementation before modifying it.
-- Do not mark unverified work as complete.
-- Do not introduce premature concurrency.
-- Do not introduce Playwright before backend stabilization.
-- Do not begin frontend implementation prematurely.
-- Preserve existing working functionality.
-- Maintain security and automated testing.
-
-## 10. Continuation Instructions
-
-When resuming development:
-
-1. Read AGENTS.md.
-2. Read this document.
-3. Read ROADMAP.md.
-4. Review DEVELOPMENT_LOG.md.
-5. Review BACKEND_AUDIT.md.
-6. Inspect the latest Git commits.
-7. Identify the next unfinished task.
-8. Continue development from the verified checkpoint.
-
-Update this document after significant verified changes.
+Read AGENTS.md, this status, ROADMAP.md, BACKEND_AUDIT.md and DEVELOPMENT_LOG.md; inspect Git state and relevant source before starting the next task. Repository evidence overrides conversation memory.

@@ -17,6 +17,7 @@ class ApplicationSettings:
     max_contact_pages: int = 5
     output_dir: Path = Path("output")
     log_level: str = "INFO"
+    max_website_searches: int = 0
 
     def __post_init__(self) -> None:
         for name, lower, upper in (
@@ -25,6 +26,7 @@ class ApplicationSettings:
             ("max_search_pages", 1, 15),
             ("max_no_progress_pages", 1, 2),
             ("max_contact_pages", 0, 5),
+            ("max_website_searches", 0, 10),
         ):
             value = getattr(self, name)
             if type(value) is not int or not lower <= value <= upper:
@@ -67,6 +69,7 @@ class ApplicationSettings:
             max_search_pages=integer("SERPER_MAX_SEARCH_PAGES", 15),
             max_no_progress_pages=integer("SERPER_MAX_NO_PROGRESS_PAGES", 2),
             max_contact_pages=integer("MAX_CONTACT_PAGES", 5),
+            max_website_searches=integer("MAX_WEBSITE_SEARCHES", 0),
             output_dir=Path(output),
             log_level=values.get("LOG_LEVEL", "INFO"),
         )

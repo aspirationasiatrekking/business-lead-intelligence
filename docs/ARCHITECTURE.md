@@ -13,35 +13,22 @@ Development follows a backend-first approach.
 
 ## 2. Current Architecture
 
-The current application is a Python CLI-based backend.
+The synchronous CLI delegates to `LeadPipelineService`:
 
-Conceptual processing pipeline:
+    CLI / ApplicationSettings / SearchRequest
+      -> BusinessSearchService
+         -> Serper Places (bounded pagination) / Resolve
+         -> map + offline geographic enrichment
+         -> CID-aware deduplication + result limit
+         -> optional organic website acquisition
+      -> ContactDiscoveryService (secure HTTPX + HTML extraction)
+      -> LeadScoringService
+      -> PipelineResult / progress callback
+      -> CLI -> Excel and CSV (shared schema, atomic individual files)
 
-    CLI
-     |
-     v
-    Business Search Service
-     |
-     v
-    Serper Places / Resolve API
-     |
-     v
-    Business Mapping
-     |
-     v
-    Contact Discovery
-     |
-     +-- Website Scraper
-     +-- Contact Extractor
-     |
-     v
-    Deduplication and Lead Scoring
-     |
-     v
-    Excel / CSV Export
+Search service owns and closes the provider before contact extraction. Per-business exceptions are isolated; search failure on the first page propagates. Search and business geography are distinct. Website and contact provenance are retained internally. Organic fallback defaults to zero logical searches, maximum 10, and evaluates up to five candidates per request using name and phone evidence.
 
-The precise execution order and component interactions
-must be verified during the backend audit.
+The current system has no persistence, API, queue or frontend. See BACKEND_AUDIT.md for security bounds and residual risks.
 
 ## 3. Current Repository Structure
 
@@ -228,7 +215,7 @@ The queue technology has not been selected.
 
 ## 9. Persistence Layer
 
-A relational database is planned.
+PostgreSQL is the proposed next implementation target, consistent with README; schema, ORM and migration choices require Phase 4 review.
 
 The conceptual entities include:
 
@@ -269,7 +256,7 @@ Security controls must include:
 - Secure secret management
 - Spreadsheet formula injection prevention
 
-Existing security controls require further auditing.
+Local URL, connection-time DNS/IP, redirect, download and export safeguards have been tested. Production egress isolation, authentication and infrastructure controls remain pending.
 
 Production traffic must use HTTPS.
 

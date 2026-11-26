@@ -8,6 +8,7 @@ from src.lead_intelligence.models.processing_result import (
     MappingResult,
     ProcessingFailure,
 )
+from src.lead_intelligence.search.serper_provider import is_google_redirect
 from src.lead_intelligence.services.geographic_enrichment import (
     GeographicEnrichmentService,
 )
@@ -132,6 +133,16 @@ def map_serper_place(
         name=name,
         address=place.get("address"),
         website=website,
+        website_status=(
+            "accepted"
+            if website
+            else "unresolved_redirect"
+            if is_google_redirect(raw_website)
+            else "rejected"
+            if raw_website
+            else "missing"
+        ),
+        website_source=(place.get("_website_source", "places") if website else None),
         category=place.get("category"),
         serper_cid=normalize_serper_cid(place.get("cid")),
         latitude=normalize_coordinate(place.get("latitude"), 90),
