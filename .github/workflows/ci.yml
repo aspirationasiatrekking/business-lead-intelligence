@@ -7,14 +7,24 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   quality:
     name: Code Quality and Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -39,5 +49,6 @@ jobs:
       - name: Check Ruff formatting
         run: python -m ruff format --check .
 
-      - name: Run tests
-        run: python -m pytest
+      - name: Run tests with coverage
+        run: |
+          python -m pytest --cov=src/lead_intelligence --cov-report=term-missing
