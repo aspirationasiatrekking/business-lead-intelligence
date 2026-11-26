@@ -282,7 +282,6 @@ def normalize_page_url(url: str) -> str:
 
 def find_contact_pages(url: str, html: str) -> list[str]:
     """Discover and prioritize contact-related pages."""
-
     soup = BeautifulSoup(html, "html.parser")
 
     homepage = urlparse(url)
@@ -292,19 +291,35 @@ def find_contact_pages(url: str, html: str) -> list[str]:
     for link in soup.find_all("a", href=True):
         href = link["href"]
 
-        full_url = urljoin(url, href)
+        if not isinstance(href, str) or not href.strip():
+            continue
 
-        parsed_url = urlparse(full_url)
+        try:
+            full_url = urljoin(url, href.strip())
+            parsed_url = urlparse(full_url)
 
-        # Allow only HTTP and HTTPS
+            # Reject malformed port values.
+            _ = parsed_url.port
+
+        except ValueError:
+            continue
+
+        # Allow only HTTP and HTTPS.
         if parsed_url.scheme not in {"http", "https"}:
             continue
 
-        # Only allow links from the same website
+        if not parsed_url.hostname:
+            continue
+
+        # Reject embedded URL credentials.
+        if parsed_url.username is not None or parsed_url.password is not None:
+            continue
+
+        # Only allow links from the same website.
         if parsed_url.netloc.lower() != homepage.netloc.lower():
             continue
 
-        # Ignore the homepage itself
+        # Ignore the homepage itself.
         if parsed_url.path.rstrip("/") == homepage.path.rstrip("/"):
             continue
 
@@ -314,11 +329,9 @@ def find_contact_pages(url: str, html: str) -> list[str]:
 
         searchable_text = f"{link_text} {path}"
 
-        # Normalize separators
         normalized_text = searchable_text.replace("_", " ")
         normalized_text = normalized_text.replace("-", " ")
 
-        # Calculate priority score
         score = 0
 
         for keyword in CONTACT_KEYWORDS:
@@ -335,6 +348,9 @@ def find_contact_pages(url: str, html: str) -> list[str]:
                 break
 
         if score > 0:
+            # Remove fragments because they are not separate HTTP pages.
+            full_url = urlunparse(parsed_url._replace(fragment=""))
+
             normalized_url = normalize_page_url(full_url)
 
             if normalized_url not in contact_pages:
@@ -349,7 +365,6 @@ def find_contact_pages(url: str, html: str) -> list[str]:
                     score,
                 )
 
-    # Sort highest priority pages first
     sorted_pages = sorted(
         contact_pages.values(),
         key=lambda item: item["score"],
