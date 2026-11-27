@@ -1,3 +1,4 @@
+from src.lead_intelligence.database.models.auth import UserRecord, UserSessionRecord
 from src.lead_intelligence.database.models.business import (
     BusinessContactRecord,
     BusinessRecord,
@@ -20,4 +21,6 @@ __all__ = [
     "SearchJobRecord",
     "SearchQueryRecord",
     "SearchResultRecord",
+    "UserRecord",
+    "UserSessionRecord",
 ]

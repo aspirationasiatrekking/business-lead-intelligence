@@ -183,6 +183,12 @@ class SearchJobRecord(
         nullable=False,
     )
 
+    created_by: Mapped[UUID | None] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("users.id", ondelete="RESTRICT"),
+        index=True,
+    )
+
     max_results: Mapped[int] = mapped_column(
         Integer,
         nullable=False,

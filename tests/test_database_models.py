@@ -41,6 +41,8 @@ EXPECTED_TABLES = {
     "search_jobs",
     "search_results",
     "processing_failures",
+    "users",
+    "user_sessions",
 }
 
 
