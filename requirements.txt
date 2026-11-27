@@ -1,3 +1,4 @@
+
 # Runtime dependencies
 
 # HTTP communication
@@ -24,3 +25,8 @@ requests-ratelimiter==0.10.0
 
 # Geographic information
 pycountry==26.2.16
+
+# Database and persistence
+SQLAlchemy==2.1.9
+alembic==1.20.1
+psycopg[binary]==3.3.9
